@@ -2,17 +2,18 @@
 Custom Scala Collections
 
 TODO english docs in few months
+
 ## Библиотека коллекций для Scala
 Библиотека коллекций, которых может недоставать в стандартной библиотеке Scala. 
 Пока находится в разработке и будет готова в течении нескольких месяцев. 
 В данный момент содержит следующие коллекции:  
 1. Мутабельные:  
-    a. [VList][vlist].   
-    b. [FixedQueue][fixed_queue]  
-    c. [IntMap][int_map]  
+    a. VList.   
+    b. FixedQueue
+    c. IntMap
 2. Иммутабельные:  
-    a. [FixedQueue][fixed_queue]   
-    b. [PrefixTree][prefix_tree]  
+    a. FixedQueue   
+    b. PrefixTree  
     
 ## Описание реализаций
 Все мутабельные коллекции не являются потокобезопасными
