@@ -13,8 +13,8 @@ object IntMap {
 
   //  def newBuilder[B]: collection.mutable.Builder[(Int, B), IntMap[B]] = new IntMap[B]()
 
-  implicit def canBuildFrom[B] = new CanBuildFrom[IntMap[_], (Int, B), IntMap[B]] {
-    def apply(from: IntMap[_]): mutable.Builder[(Int, B), IntMap[B]] = apply()
+  implicit def canBuildFrom[B] = new CanBuildFrom[mutable.Map[_, _], (Int, B), IntMap[B]] {
+    def apply(from: mutable.Map[_, _]): mutable.Builder[(Int, B), IntMap[B]] = apply()
 
     def apply(): mutable.Builder[(Int, B), IntMap[B]] = new IntMap[B]()
   }
@@ -25,8 +25,11 @@ object IntMap {
 
   private[collz] class EntryArray(var underlying: Array[AnyRef], var size: Int)
 
+  // маска для того, чтобы достать из числа индекс
   final val mask = 0xF
+  // количество бит, в которых хранится индекс для каждого уровня
   final val bitLevel = 4
+  // количество элементов в одном узле(на одном уровне)
   final val levelSize = 16
 
 

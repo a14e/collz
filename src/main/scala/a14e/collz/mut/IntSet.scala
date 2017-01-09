@@ -6,8 +6,8 @@ import scala.collection.mutable
 
 object IntSet {
 
-  implicit def canBuildFrom = new CanBuildFrom[IntSet, Int, IntSet] {
-    def apply(from: IntSet): mutable.Builder[Int, IntSet] = apply()
+  implicit def canBuildFrom = new CanBuildFrom[mutable.Set[_], Int, IntSet] {
+    def apply(from: IntSet{_}): mutable.Builder[Int, IntSet] = apply()
 
     def apply(): mutable.Builder[Int, IntSet] = IntSet()
   }
