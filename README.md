@@ -9,10 +9,10 @@ TODO english docs in few months
 В данный момент содержит следующие коллекции:  
 1. Мутабельные:  
     a. VList      
-    b. FixedQueue  
+    b. BoundedQueue  
     c. IntMap  
 2. Иммутабельные:  
-    a. FixedQueue   
+    a. BoundedQueue   
     b. PrefixTree  
     
 ## Описание реализаций
@@ -34,7 +34,7 @@ TODO english docs in few months
 
 К сожалению из википедии удалили статьи об этой структуре данных и не могу тут расположить ссылку.
 
-### <a name="fixed_queue"></a> FixedQueue
+### <a name="fixed_queue"></a> BoundedQueue
 Прдеставляет собой коллекцию очередь типа FIFO с фиксированным размером. 
 Новые элементы добавляются в клонец методами push.
 Элементы из очереди получаются вызовами методов pull из начала. 
@@ -61,6 +61,10 @@ TODO english docs in few months
 может быть в 4-8 раз быстрее. Сложность операций добавления, удаления, поиска имеет  вид 
 O(log16(n))
 
+### <a name="int_map"></a> IntSet
+Реализация mutable.Set[_], оптимизированная для работы с Int. Сделана на базе префиксных деревьев. 
+Представляет собой легкую обертку поверх IntMap. 
+
 ### <a name="prefix_tree"></a> PrefixTree 
 Реализация immutable.Set[_] для работы со строками на базе префиксного дерева. Позволяет
 выполнять эффективный поиск поиск, добавление и удаление при работе со строками. В случае
@@ -82,11 +86,11 @@ O(log16(n))
     1) иммутабельные:  
         a. PrefixSet   
         b. PrefixMap  
-        c. NonDeleteFixedQueue
+        c. NonDeleteBoundedQueue
     2) мутабельные:  
         a. PrefixSet    
         b. PrefixMap  
-        c. NonDeleteFixedQueue  
+        c. NonDeleteBoundedQueue  
         d. IntervalMap
 5. Добавить бенчмарки в репозиторий
 6. Добавить описание лицензии

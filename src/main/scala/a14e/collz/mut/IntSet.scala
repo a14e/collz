@@ -24,7 +24,11 @@ class IntSet private[collz](val underlying: IntMap[Unit]) extends mutable.Set[In
 
   override def newBuilder: mutable.Builder[Int, mutable.Set[Int]] = IntSet()
 
-  override def result(): mutable.Set[Int] = this
+  override def result(): IntSet = this
+
+  override def clear(): Unit =  {
+    underlying.clear()
+  }
 
   override def +=(elem: Int): IntSet.this.type = {
     underlying(elem) = Unit

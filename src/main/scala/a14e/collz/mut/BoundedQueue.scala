@@ -1,6 +1,6 @@
 package a14e.collz.mut
 
-import scala.collection.AbstractIterator
+import scala.collection.{AbstractIterator, mutable}
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -32,13 +32,15 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
   def length: Int
 
+  def clear(): Int
+
 }
 
-object FixedQueue {
-  def apply[T](maxSize: Int): FixedQueue[T] = new FixedQueue[T](maxSize)
+object BoundedQueue {
+  def apply[T](maxSize: Int): BoundedQueue[T] = new BoundedQueue[T](maxSize)
 
-  def fill[T](maxSize: Int)(el: => T): FixedQueue[T] = {
-    val res = FixedQueue[T](maxSize)
+  def fill[T](maxSize: Int)(el: => T): BoundedQueue[T] = {
+    val res = BoundedQueue[T](maxSize)
     var counter = maxSize
     while (counter != 0) {
       res += el
@@ -47,21 +49,30 @@ object FixedQueue {
     res
   }
 
-  def of[T](xs: T*): Queue[T] = FixedQueue[T](xs.size) ++= xs
+  def of[T](xs: T*): Queue[T] = BoundedQueue[T](xs.size) ++= xs
 }
 
 
-class FixedQueue[T](maxSize: Int) extends Queue[T] {
+class BoundedQueue[T](capacity: Int) extends Queue[T] {
   self =>
   private var _size: Int = 0
 
-  private var read: Array[Any] = new Array[Any](maxSize)
+  private var read: Array[Any] = new Array[Any](capacity)
   private var readOffset: Int = 0
   private var readEnd: Int = 0
 
-  private var write: Array[Any] = new Array[Any](maxSize)
+  private var write: Array[Any] = new Array[Any](capacity)
   private var writeEnd: Int = 0
 
+
+  def clear(): Unit = {
+    _size = 0
+    read = new Array[Any](capacity)
+    readOffset = 0
+    readEnd = 0
+    write= new Array[Any](capacity)
+    writeEnd = 0
+  }
 
   private def appendRead(elem: T): Unit = {
     read(readEnd) = elem
@@ -75,24 +86,24 @@ class FixedQueue[T](maxSize: Int) extends Queue[T] {
 
   private def moveWriteToRead(): Unit = {
     read = write
-    write = new Array[Any](maxSize)
+    write = new Array[Any](capacity)
     readOffset = 0
     readEnd = writeEnd
     writeEnd = 0
   }
 
   def push(elem: T): Queue[T] = {
-    if (readEnd != maxSize) {
+    if (readEnd != capacity) {
       appendRead(elem)
     } else {
       appendWrite(elem)
       val newReadOffset = readOffset + 1
-      if (newReadOffset == maxSize)
+      if (newReadOffset == capacity)
         moveWriteToRead()
       else readOffset = newReadOffset
     }
     _size += 1
-    if (size > maxSize) _size = maxSize
+    if (size > capacity) _size = capacity
     this
   }
 
@@ -110,7 +121,7 @@ class FixedQueue[T](maxSize: Int) extends Queue[T] {
 
   private def movePointerAfterRead(): Unit = {
     readOffset += 1
-    if (readOffset == maxSize) {
+    if (readOffset == capacity) {
       moveWriteToRead()
     }
     _size -= 1
@@ -128,12 +139,11 @@ class FixedQueue[T](maxSize: Int) extends Queue[T] {
 
   override def pullAll(count: Int): Seq[T] = {
     var counter = math.min(_size, count)
-    val res = new ListBuffer[T]()
-    while (counter != 0) {
-      res += pull()
+
+    pullWhile{_ =>
       counter -= 1
+      counter != -1
     }
-    res.result()
   }
 
   override def pullWhile(cond: (T) => Boolean): Seq[T] = {

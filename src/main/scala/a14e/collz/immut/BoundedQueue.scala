@@ -44,7 +44,7 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 /**
   * Created by Andrew on 18.12.2016.
   */
-class FixedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], maxSize: Int)
+class BoundedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], capacity: Int)
   extends Queue[T] with Serializable {
 
   override def isEmpty: Boolean = (read.size - readOffset == 0) && write.isEmpty
@@ -59,28 +59,28 @@ class FixedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], maxSize:
 
   override def pull(): (Queue[T], T) = {
     val newOffset = readOffset + 1
-    if (newOffset == maxSize) {
+    if (newOffset == capacity) {
       val value = read.last
-      val queue = new FixedQueue[T](0, write, Vector.empty[T], maxSize)
+      val queue = new BoundedQueue[T](0, write, Vector.empty[T], capacity)
       (queue, value)
     } else {
       if (read.isEmpty)
         throw new IndexOutOfBoundsException("pull on empty queue")
       val value = read(readOffset)
-      val queue = new FixedQueue[T](newOffset, read, write, maxSize)
+      val queue = new BoundedQueue[T](newOffset, read, write, capacity)
       (queue, value)
     }
   }
 
   override def pullOption(): (Queue[T], Option[T]) = {
     val newOffset = readOffset + 1
-    if (newOffset == maxSize) {
+    if (newOffset == capacity) {
       val value = read.headOption
-      val queue = new FixedQueue[T](0, write, Vector.empty[T], maxSize)
+      val queue = new BoundedQueue[T](0, write, Vector.empty[T], capacity)
       (queue, value)
     } else {
       val value = if (read.isEmpty) None else Some(read(readOffset))
-      val queue = new FixedQueue[T](newOffset, read, write, maxSize)
+      val queue = new BoundedQueue[T](newOffset, read, write, capacity)
       (queue, value)
     }
   }
@@ -89,12 +89,12 @@ class FixedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], maxSize:
     val newOffset = readOffset + 1
     if (newOffset == read.length) {
       buffer += read.last
-      new FixedQueue[T](0, write, Vector.empty[T], maxSize)
+      new BoundedQueue[T](0, write, Vector.empty[T], capacity)
     } else {
       if (read.isEmpty) this
       else {
         buffer += read(readOffset)
-        new FixedQueue[T](newOffset, read, write, maxSize)
+        new BoundedQueue[T](newOffset, read, write, capacity)
       }
     }
   }
@@ -167,16 +167,16 @@ class FixedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], maxSize:
 
   override def :+(elem: T): Queue[T] = {
     val readSize = read.size
-    if (readSize != maxSize) {
+    if (readSize != capacity) {
       val newRead = read :+ elem
-      new FixedQueue[T](readOffset, newRead, write, maxSize)
+      new BoundedQueue[T](readOffset, newRead, write, capacity)
     } else {
       val newWrite = write :+ elem
       val newReadOffset = readOffset + 1
-      if (newReadOffset == maxSize) {
-        new FixedQueue[T](0, newWrite, Vector.empty[T], maxSize)
+      if (newReadOffset == capacity) {
+        new BoundedQueue[T](0, newWrite, Vector.empty[T], capacity)
       } else {
-        new FixedQueue[T](newReadOffset, read, newWrite, maxSize)
+        new BoundedQueue[T](newReadOffset, read, newWrite, capacity)
       }
     }
   }
@@ -203,25 +203,25 @@ class FixedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], maxSize:
   override def toString(): String = mkString("FixedQueue(", ", ", " )")
 }
 
-object FixedQueue {
+object BoundedQueue {
 
-  def apply[T](maxSize: Int): FixedQueue[T] = {
+  def apply[T](maxSize: Int): BoundedQueue[T] = {
     if (maxSize <= 0)
       throw new IllegalArgumentException("FixedQueue should have maxSize > 0")
-    new FixedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
+    new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
   }
 
-  def newBuilder[A](maxSize: Int): mutable.Builder[A, FixedQueue[A]] = new mutable.Builder[A, FixedQueue[A]] {
-    private var queue: FixedQueue[A] = FixedQueue[A](maxSize)
+  def newBuilder[A](maxSize: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {
+    private var queue: BoundedQueue[A] = BoundedQueue[A](maxSize)
 
     override def +=(elem: A): this.type = {
-      queue = (queue :+ elem).asInstanceOf[FixedQueue[A]]
+      queue = (queue :+ elem).asInstanceOf[BoundedQueue[A]]
       this
     }
 
-    override def clear(): Unit = queue = FixedQueue(maxSize)
+    override def clear(): Unit = queue = BoundedQueue(maxSize)
 
-    override def result(): FixedQueue[A] = queue
+    override def result(): BoundedQueue[A] = queue
   }
 
 }
