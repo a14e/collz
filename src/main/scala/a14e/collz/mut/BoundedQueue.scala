@@ -32,7 +32,7 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
   def length: Int
 
-  def clear(): Int
+  def clear(): Unit
 
 }
 
@@ -65,12 +65,12 @@ class BoundedQueue[T](capacity: Int) extends Queue[T] {
   private var writeEnd: Int = 0
 
 
-  def clear(): Unit = {
+  override def clear(): Unit = {
     _size = 0
     read = new Array[Any](capacity)
     readOffset = 0
     readEnd = 0
-    write= new Array[Any](capacity)
+    write = new Array[Any](capacity)
     writeEnd = 0
   }
 
@@ -140,7 +140,7 @@ class BoundedQueue[T](capacity: Int) extends Queue[T] {
   override def pullAll(count: Int): Seq[T] = {
     var counter = math.min(_size, count)
 
-    pullWhile{_ =>
+    pullWhile { _ =>
       counter -= 1
       counter != -1
     }
