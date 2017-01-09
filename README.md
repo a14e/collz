@@ -83,8 +83,8 @@ O(log16(n))
         a. PrefixSet   
         b. PrefixMap  
         c. NonDeleteFixedQueue
-    2) мутабельные:
-        a. PrefixSet   
+    2) мутабельные:  
+        a. PrefixSet    
         b. PrefixMap  
         c. NonDeleteFixedQueue  
         d. IntervalMap

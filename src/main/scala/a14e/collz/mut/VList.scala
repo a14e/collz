@@ -11,23 +11,7 @@ object VList extends SeqFactory[VList] {
 
   def range(start: Int, end: Int) = new VList(start to end)
 
-  override def newBuilder[A]: mutable.Builder[A, VList[A]] = new mutable.Builder[A, VList[A]] {
-    var list = new VList[A]()
-
-    override def +=(elem: A): this.type = {
-      list.appendOne(elem)
-      this
-    }
-
-    override def ++=(elems: TraversableOnce[A]): this.type = {
-      list.appendAll(elems)
-      this
-    }
-
-    override def result(): VList[A] = list
-
-    override def clear(): Unit = list.clear()
-  }
+  override def newBuilder[A]: mutable.Builder[A, VList[A]] = new VList[A]()
 
   implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, VList[A]] = ReusableCBF.asInstanceOf[GenericCanBuildFrom[A]]
 
@@ -45,6 +29,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   mutable.AbstractBuffer[T]
   with GenericTraversableTemplate[T, VList]
   with mutable.BufferLike[T, VList[T]]
+  with mutable.Builder[T, VList[T]]
   with mutable.Iterable[T]
   with Seq[T]
   with Serializable {
@@ -53,7 +38,10 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
   override def companion: GenericCompanion[VList] = VList
 
-  def this() = this(new Array(3), -1, 0, 0)
+  def this() = {
+    this(null, 0, 0, 0)
+    clear() // так как в clear() сделано будет все, что надо
+  }
 
   def this(xs: TraversableOnce[T]) = {
     this()
@@ -61,8 +49,15 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
 
+  /** важно, что итератор продолжает оставаться рабочим после
+    * вызова clear(), что использует при реализации некоторых
+    * методов ниже
+    *
+    * в принципе возможно сделать более эффективную реализацию,
+    * которая бы сразу бы выполняла drop из начала.
+    * */
   override def iterator: Iterator[T] = new AbstractIterator[T] {
-    private var currentArray = if (bigArraySize > 0) underlying(0) else null
+    private var currentArray = if (len != 0) underlying(0) else null
     private var index = 0
     private var endIndex: Int = if (currentArray != null) currentArray.length else -1
     private var bigIndex = 0
@@ -92,7 +87,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
 
   override def reverseIterator: Iterator[T] = new AbstractIterator[T] {
-    private var currentArray = if (bigArraySize > 0) underlying(bigArraySize - 1) else null
+    private var currentArray = if (len != 0) underlying(bigArraySize - 1) else null
     private var index = currentIndex
     private var bigIndex = bigArraySize - 1
 
@@ -124,8 +119,9 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
   override def clear(): Unit = {
     underlying = new Array[Array[Any]](3)
+    underlying(0) = new Array[Any](1)
     currentIndex = -1
-    bigArraySize = 0
+    bigArraySize = 1
     len = 0
   }
 
@@ -138,10 +134,10 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
   override def ++=:(elems: TraversableOnce[T]): this.type = {
-    val listOfElems = iterator.toList
+    val iter = iterator.toList
     clear()
     appendAll(elems)
-    appendAll(listOfElems)
+    appendAll(iter)
     this
   }
 
@@ -153,20 +149,6 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   override def ++=(xs: TraversableOnce[T]): this.type = {
     appendAll(xs)
     this
-  }
-
-
-  override def map[B, That](f: T => B)(implicit bf: CanBuildFrom[VList[T], B, That]): That = {
-    def builder = {
-      // extracted to keep method size under 35 bytes, so that it can be JIT-inlined
-      val b = bf(repr)
-      b.sizeHint(this)
-      b
-    }
-
-    val b = builder
-    b ++= this.iterator.map(f)
-    b.result
   }
 
   protected def incrementSize(): Unit = {
@@ -183,52 +165,35 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
     underlying(newSize - 1) = new Array[Any](nexLen)
   }
 
-  // TODO обновить и убрать первый if =)
-  def appendOne(x: T): Unit =
-    if (bigArraySize == 0) {
+
+  private def addElementToArray(array: Array[Any], x: T): Array[Any] = {
+    var toAddArray = array
+    currentIndex += 1
+    len += 1
+    if (currentIndex >= array.length) {
       incrementSize()
-      len += 1
       currentIndex = 0
-      underlying(0)(currentIndex) = x
-    } else {
-      currentIndex += 1
-      len += 1
-      val array = underlying(bigArraySize - 1)
-      if (currentIndex >= array.length) {
-        incrementSize()
-        currentIndex = 0
-        underlying(bigArraySize - 1)(currentIndex) = x
-      } else {
-        array(currentIndex) = x
-      }
+      toAddArray = underlying(bigArraySize - 1)
     }
+    toAddArray(currentIndex) = x
+    toAddArray
+  }
+
+  // TODO обновить и убрать первый if =)
+  def appendOne(x: T): Unit = {
+    val array = underlying(bigArraySize - 1)
+    addElementToArray(array, x)
+  }
 
   override def append(xs: T*): Unit = appendAll(xs)
 
-  override def appendAll(xs: TraversableOnce[T]): Unit =
-    if (xs.nonEmpty) {
-      val it = xs.toIterator
-      appendOne(it.next)
-      if (it.hasNext) {
-        var array = underlying(bigArraySize - 1)
-        while (it.hasNext) {
-          currentIndex += 1
-          len += 1
-          if (currentIndex >= array.length) {
-            incrementSize()
-            currentIndex = 0
-            array = underlying(bigArraySize - 1)
-          }
-          array(currentIndex) = it.next
-        }
-      }
+  override def appendAll(xs: TraversableOnce[T]): Unit = {
+    var array = underlying(bigArraySize - 1)
+    for (x <- xs) {
+      array = addElementToArray(array, x)
     }
-
-  override def foldLeft[B](z: B)(op: (B, T) => B): B = {
-    var res = z
-    foreach(x => res = op(res, x))
-    res
   }
+
 
   override def foldRight[B](z: B)(op: (T, B) => B): B = {
     var res = z
@@ -239,15 +204,15 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
   override def filter(f: T => Boolean): VList[T] = {
     val list = new VList[T]()
-    foreach(x => if(f(x)) list += x)
+    foreach(x => if (f(x)) list += x)
     list
   }
 
-  def reverseFilter(f: T => Boolean): VList[T] = {
-    val list = new VList[T]()
-    reverseForeach(x => if(f(x)) list += x)
-    list
-  }
+  //  def reverseFilter(f: T => Boolean): VList[T] = {
+  //    val list = new VList[T]()
+  //    reverseForeach(x => if (f(x)) list += x)
+  //    list
+  //  }
 
   override def reverse: VList[T] = {
     val list = new VList[T]()
@@ -296,16 +261,41 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
   override def isEmpty: Boolean = len == 0
 
-  override def head: T = underlying.head.apply(0).asInstanceOf[T]
-
-  override def last: T = underlying(bigArraySize - 1).apply(currentIndex).asInstanceOf[T]
-
-  override def tail: VList[T] = {
-    val res = new VList[T]()
-    res.appendAll(iterator.drop(1))
-    res
+  override def head: T = {
+    if (isEmpty)
+      throw new UnsupportedOperationException("head on empty VList")
+    underlying.head.head.asInstanceOf[T]
   }
 
+  override def last: T = {
+    if (isEmpty)
+      throw new UnsupportedOperationException("last on empty VList")
+    underlying(bigArraySize - 1).apply(currentIndex).asInstanceOf[T]
+  }
+
+  override def newBuilder: mutable.Builder[T, VList[T]] = companion.newBuilder[T]
+
+  /**
+    * поиск элемента по индексу и выполнение функции f после нахождения элемента
+    * в случае, когда индекс выходит за пределы размера коллекции вылетает
+    * исключение
+    *
+    * поиск осуществляется за время O(log2(n)) в худшем случае (когда ведется поиск первого элемента)
+    * и за O(1) в большинстве случаев, так как 50...75% элементов находятся в последних 2-х массивах
+    *
+    * исключение в конце массива находится за бесконнечным циклом и в принципе недостижимо
+    * кроме ситуации гонки, возможной при работе при многопоточности,
+    * не рекомендуется вызывать этот метод и вообще использовать этот класс при многопоточной работе,
+    * так как это может потенциально приводить к дедлокам, исключениям и прочим гадостям.
+    *
+    * @param idx индекс элемента
+    * @param f   функция, которая будет вызвана после нахождения элемента
+    *            первый аргумент -- массив, где находится элемент, второй --
+    *            индекс внутри массива и трейтий -- номер массива
+    * @tparam B тип возвращаемого значения функцией f(...)
+    * @return возврващает результат выполнения функции f, либо падает
+    *         с исключением о выходе за пределы массива.
+    */
   protected def withFound[B](idx: Int)(f: (Array[Any], Int, Int) => B): B = {
     if (idx < 0 || idx >= len)
       throw new IndexOutOfBoundsException(s"index '$idx' is out of bounds: [0...$len]")
@@ -328,8 +318,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
       }
     } while (true)
 
-    /** only for compiling */
-    null.asInstanceOf[B]
+    throw new IllegalStateException("unreachable state")
   }
 
 
@@ -351,7 +340,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
             val array = underlying(bigIndex - 1)
             currentIndex = array.length - 1
           } else {
-            bigArraySize = 0
+            bigArraySize = 1
             currentIndex = -1
           }
         }
@@ -383,48 +372,32 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
 
   /** TODO улучшить */
   override def insertAll(idx: Int, elems: Traversable[T]): Unit =
-    if (idx == 0)
-      elems ++=: this
-    else if (idx == length) {
-      this ++= elems
-    } else {
-      val listOfPrevious = iterator.drop(idx).toList
+    idx match {
+      case 0 => elems ++=: this
+      case _ if idx == length => this ++= elems
+      case _ =>
+        val listOfPrevious = iterator.drop(idx).toList
 
-      withFound(idx) {
-        (a, i, bigIndex) =>
-          if (i != 0) {
-            currentIndex = i - 1
-            bigArraySize = bigIndex + 1
-          } else {
-            bigArraySize = bigIndex
-            val array = underlying(bigIndex - 1)
-            currentIndex = array.length - 1
-          }
-          len = idx
+        withFound(idx) {
+          (_, i, bigIndex) =>
+            if (i != 0) {
+              currentIndex = i - 1
+              bigArraySize = bigIndex + 1
+            } else {
+              bigArraySize = bigIndex
+              val array = underlying(bigIndex - 1)
+              currentIndex = array.length - 1
+            }
+            len = idx
 
-          appendAll(elems)
-          appendAll(listOfPrevious)
-      }
+            appendAll(elems)
+            appendAll(listOfPrevious)
+        }
     }
 
-  override def equals(x: Any): Boolean = x match {
-    case arr: Array[T] =>
-      //      scala.compat.Platform.
-      arr.length == length && {
-        var i = 0
-        val iter = iterator
-        while (iter.hasNext) {
-          if (iter.next() != arr(i))
-            return false
-          i += 1
-        }
-        true
-      }
-    case _ => super.equals(x)
-  }
 
+  override def result(): VList[T] = this
 
   override def stringPrefix: String = "VList"
-
 
 }
