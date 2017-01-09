@@ -9,8 +9,6 @@ import scala.util.Random
 
 object IntMap {
 
-
-  scala.collection.mutable.HashMap
   // type CC[B] <: GenMap[Int, B] with GenMapLike[Int, B, CC[ B]]
 
   //  def newBuilder[B]: collection.mutable.Builder[(Int, B), IntMap[B]] = new IntMap[B]()
@@ -62,6 +60,8 @@ import IntMap._
 class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef](IntMap.levelSize),
                 private var _size: Int = 0)
   extends scala.collection.mutable.Map[Int, T] with collection.mutable.Builder[(Int, T), IntMap[T]] {
+
+  override def newBuilder: mutable.Builder[(Int, T), mutable.Map[Int, T]] = new IntMap[T]()
 
   override def clear(): Unit = {
     underlying = new Array[AnyRef](levelSize)

@@ -49,13 +49,6 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
 
-  /** важно, что итератор продолжает оставаться рабочим после
-    * вызова clear(), что использует при реализации некоторых
-    * методов ниже
-    *
-    * в принципе возможно сделать более эффективную реализацию,
-    * которая бы сразу бы выполняла drop из начала.
-    * */
   override def iterator: Iterator[T] = new AbstractIterator[T] {
     private var currentArray = if (len != 0) underlying(0) else null
     private var index = 0
