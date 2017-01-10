@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/AndrewInstance/collz.svg?branch=master)](https://travis-ci.org/AndrewInstance/collz)
+
+
 # Collz
 Custom Scala Collections
 
