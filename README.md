@@ -1,5 +1,7 @@
 [![Build Status](https://travis-ci.org/AndrewInstance/collz.svg?branch=master)](https://travis-ci.org/AndrewInstance/collz)
 
+[![codecov.io](http://codecov.io/github/typelevel/cats/coverage.svg?branch=master)](https://codecov.io/gh/AndrewInstance/collz?branch=master)
+
 
 # Collz
 Custom Scala Collections
