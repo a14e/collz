@@ -8,13 +8,16 @@ TODO english docs in few months
 Пока находится в разработке и будет готова в течении нескольких месяцев. 
 В данный момент содержит следующие коллекции:  
 1. Мутабельные:  
-    1) VList      
+  
+    1) VList  
     2) BoundedQueue  
     3) IntMap  
     4) IntSet  
     5) PrefixMap  
     6) PrefixSet  
+      
 2. Иммутабельные:  
+  
     1) BoundedQueue
     
 ## Описание реализаций
