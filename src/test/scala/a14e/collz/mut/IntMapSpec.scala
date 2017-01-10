@@ -325,7 +325,7 @@ class IntMapSpec extends WordSpec with Matchers {
         val values = List(0xFFF -> 2, 0x2F -> 3, 0x3F -> 4, 0x1FFF -> 5, 0xF1FFF -> 6)
         val map = IntMap[Int](values: _*)
         var tail = values
-        for ((k, v) <- values) {
+        for ((_, _) <- values) {
           map.remove(tail.head._1)
           map.contains(tail.head._1) shouldBe false
           tail = tail.tail
@@ -350,7 +350,7 @@ class IntMapSpec extends WordSpec with Matchers {
         val values = List.fill(20)(Random.nextInt() -> 1)
         val map = IntMap[Int](values: _*)
         var tail = values
-        for ((k, v) <- values) {
+        for ((_, _) <- values) {
           map.remove(tail.head._1)
           map.contains(tail.head._1) shouldBe false
           tail = tail.tail

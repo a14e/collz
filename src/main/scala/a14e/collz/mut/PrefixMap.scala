@@ -2,6 +2,7 @@ package a14e.collz.mut
 
 import scala.annotation.tailrec
 import scala.collection.{AbstractIterator, mutable}
+import scala.util.Random
 
 /**
   * Created by User on 09.01.2017.
@@ -65,6 +66,18 @@ object PrefixMap {
     math.min(math.min(x, y), z)
   }
 
+  /**
+    * функция для вычисления количества общих символов, в строках
+    * first и second начиная с индекса start, причем количество вычесленных
+    * символов не будет превышать maxCount
+    *
+    * @param first    первая строка
+    * @param second   вторая строка
+    * @param start    начальный индекс
+    * @param maxCount максимальный результат
+    * @return общее количество символов в строках first и second начиная с индекса start, но
+    *         не большее чем maxCount
+    */
   private[collz] def countEquals(first: String, second: String, start: Int, maxCount: Int): Int = {
     val minLen = minOf3(first.length, second.length, start + maxCount)
     if (minLen <= start)
@@ -85,7 +98,6 @@ object PrefixMap {
     count
   }
 
-
   def apply[T](kvs: (String, T)*): PrefixMap[T] = new PrefixMap[T](new IntMap[Node](), 0) ++= kvs
 
   // особый индекс для символа, который отвечает за пустую строку =)
@@ -98,7 +110,8 @@ object PrefixMap {
 //позволяет упростить некоторые алгоритмы
 import PrefixMap._
 
-class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mutable.Map[String, T] {
+class PrefixMap[T] private[collz](private val root: IntMap[Node],
+                                  private var _size: Int) extends mutable.Map[String, T] {
 
 
   override def size: Int = _size
@@ -109,8 +122,11 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
   }
 
   private def calcIndex(key: String, startIndex: Int): Int = {
-    if (key.length == startIndex) // проверяем на пустые строки
-      emptyStringIndex else key.charAt(startIndex).toInt
+    // проверяем на пустые строки
+    if (key.length == startIndex)
+      emptyStringIndex
+    else
+      key.charAt(startIndex).toInt
   }
 
   @tailrec
@@ -142,7 +158,7 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
   private def recHasPrefix(startIndex: Int,
                            key: String,
                            leaves: IntMap[Node]): Boolean = {
-    val internalKey = calcIndex (key,startIndex)
+    val internalKey = calcIndex(key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null => false
@@ -163,7 +179,7 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
   private def recFindByPrefix(startIndex: Int,
                               key: String,
                               leaves: IntMap[Node]): Iterator[(String, T)] = {
-    val internalKey = calcIndex (key, startIndex)
+    val internalKey = calcIndex(key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null => Iterator.empty
@@ -179,7 +195,6 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
         else if (count == node.validCount)
           recFindByPrefix(startIndex + count, key, node.leaves)
         else Iterator.empty
-
     }
   }
 
@@ -189,6 +204,13 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
   }
 
 
+  private def leafIndex(leaf: Leaf): Int = {
+    // проверяем на пустые строки
+    if (leaf.validCount == 0)
+      emptyStringIndex
+    else
+      leaf.key.charAt(leaf.startIndex).toInt
+  }
 
   private def mergeLeaves(init: Leaf, toAdd: Leaf): Node = {
     val maxCount = math.min(init.validCount, toAdd.validCount)
@@ -206,8 +228,8 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
     val newLeaf1 = new Leaf(init.key, init.value, newStartIndex, init.validCount - count)
     val newLeaf2 = new Leaf(toAdd.key, toAdd.value, newStartIndex, toAdd.validCount - count)
 
-    val key1 = if (newLeaf1.validCount == 0) emptyStringIndex else newLeaf1.key.charAt(newLeaf1.startIndex).toInt
-    val key2 = if (newLeaf2.validCount == 0) emptyStringIndex else newLeaf2.key.charAt(newLeaf2.startIndex).toInt
+    val key1 = leafIndex(newLeaf1)
+    val key2 = leafIndex(newLeaf2)
 
     node.leaves(key1) = newLeaf1
     node.leaves(key2) = newLeaf2
@@ -226,7 +248,7 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
     val node2 = new Leaf(toAdd.key, toAdd.value, newStartIndex, toAdd.validCount - count)
 
     val key1 = if (node1.validCount == 0) emptyStringIndex else node1.key.charAt(newStartIndex).toInt
-    val key2 = if (node2.validCount == 0) emptyStringIndex else node2.key.charAt(newStartIndex).toInt
+    val key2 = leafIndex(node2)
 
     node.leaves(key1) = node1
     node.leaves(key2) = node2
@@ -244,7 +266,7 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
 
     def newLeaf() = new Leaf(key, value, startIndex, key.length - startIndex)
 
-    val internalKey = calcIndex (key, startIndex)
+    val internalKey = calcIndex(key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null =>
@@ -285,7 +307,7 @@ class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mu
                         previousLeaves: IntMap[Node],
                         previousLeaveKey: Int): Unit = {
 
-    val internalKey = calcIndex (key, startIndex)
+    val internalKey = calcIndex(key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null =>
