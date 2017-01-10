@@ -43,6 +43,10 @@ class PrefixMapSpec extends WordSpec with Matchers {
         val prefixMap = PrefixMap[Int](data: _*)
         map.isEmpty shouldBe prefixMap.isEmpty
         map.size shouldBe prefixMap.size
+
+        prefixMap.clear()
+        prefixMap.size shouldBe 0
+        prefixMap.isEmpty shouldBe true
       }
 
       "empty" in {
@@ -104,8 +108,13 @@ class PrefixMapSpec extends WordSpec with Matchers {
         testSizeByData("aab" -> 1, "aac" -> 1, "aac" -> 1, "c" -> 1, "d" -> 1, "d" -> 1)
       }
 
+
+
       "multiple nesting elements" in {
         testSizeByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
+
+
+        testSizeByData("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
       }
 
       "multiple nested elements and first level" in {
@@ -207,10 +216,15 @@ class PrefixMapSpec extends WordSpec with Matchers {
 
       "multiple nesting elements" in {
         testAddElemsByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
+
+
+        testAddElemsByData("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
       }
 
       "multiple nested elements and first level" in {
         testAddElemsByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1, "f" -> 1)
+
+
       }
 
       "multiple int strings" in {
@@ -309,6 +323,9 @@ class PrefixMapSpec extends WordSpec with Matchers {
 
       "multiple nesting elements" in {
         testIteratorByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
+
+
+        testIteratorByData("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
       }
 
       "multiple nested elements and first level" in {
@@ -406,6 +423,9 @@ class PrefixMapSpec extends WordSpec with Matchers {
 
       "multiple nesting elements" in {
         testRemoveElemsByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
+
+
+        testRemoveElemsByData("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
       }
 
       "multiple nested elements and first level" in {
@@ -533,6 +553,9 @@ class PrefixMapSpec extends WordSpec with Matchers {
 
       "multiple nesting elements" in {
         testFindByPrefixByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
+
+
+        testFindByPrefixByData("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
       }
 
       "multiple nested elements and first level" in {

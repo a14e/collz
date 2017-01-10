@@ -2,6 +2,8 @@ package a14e.collz.immut
 
 import org.scalatest.{Matchers, WordSpec}
 
+import scala.collection.mutable.ListBuffer
+
 /**
   * Created by Andrew on 18.12.2016.
   */
@@ -109,6 +111,86 @@ class BoundedQueueSpec extends WordSpec with Matchers {
         val (q2, x2) = BoundedQueue[Int](3).pushValues(1, 2, 3, 4, 5).pull()
         q2.mkString("") shouldBe "45"
         x2 shouldBe 3
+      }
+    }
+
+    "push and then pull" should {
+      def deleteTest(queue: Queue[Int], list: List[Int]): Unit = {
+        var q = queue
+        for (x <- list) {
+          val (newQueue, pulled) = q.pull()
+          pulled shouldBe x
+          q = newQueue
+        }
+        q.isEmpty shouldBe true
+
+        q.pullOption() shouldBe(q, None)
+      }
+
+
+      def pushAndThenPullOneByOne(size: Int)(xs: Int*): Unit = {
+        val list = new ListBuffer[Int]()
+        var queue: Queue[Int] = BoundedQueue[Int](size)
+        for (x <- xs) {
+          queue = queue.push(x)
+          list += x
+          if (list.size > size)
+            list.remove(0)
+
+          deleteTest(queue, list.result())
+        }
+      }
+
+      "have right values while read vector non fill" in {
+        pushAndThenPullOneByOne(2)(2)
+
+        pushAndThenPullOneByOne(2)(2, 3)
+      }
+
+      "have right values while write vector non fill" in {
+        pushAndThenPullOneByOne(2)(1, 2, 3)
+
+        pushAndThenPullOneByOne(3)(1, 2, 3, 3)
+      }
+
+      "have right after after full rotate" in {
+        pushAndThenPullOneByOne(2)(1, 2, 3, 4)
+
+        pushAndThenPullOneByOne(3)(1, 2, 3, 4, 5)
+      }
+    }
+
+    "iterator test" should {
+
+      def iteratorOneByOne(size: Int)(xs: Int*): Unit = {
+        val list = new ListBuffer[Int]()
+        var queue: Queue[Int] = BoundedQueue[Int](size)
+        for (x <- xs) {
+          queue = queue.push(x)
+          list += x
+          if (list.size > size)
+            list.remove(0)
+
+          queue.iterator.toList shouldBe list.result()
+        }
+      }
+
+      "have right values while read vector non fill" in {
+        iteratorOneByOne(2)(2)
+
+        iteratorOneByOne(2)(2, 3)
+      }
+
+      "have right values while write vector non fill" in {
+        iteratorOneByOne(2)(1, 2, 3)
+
+        iteratorOneByOne(3)(1, 2, 3, 3)
+      }
+
+      "have right after after full rotate" in {
+        iteratorOneByOne(2)(1, 2, 3, 4)
+
+        iteratorOneByOne(3)(1, 2, 3, 4, 5)
       }
     }
 

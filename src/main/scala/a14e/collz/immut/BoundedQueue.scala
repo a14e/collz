@@ -1,4 +1,5 @@
 package a14e.collz.immut
+
 //import scala.collection.immutabl
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -40,11 +41,15 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
 
 }
+
 //TODO сделать изменяемую очередь
 /**
   * Created by Andrew on 18.12.2016.
   */
-class BoundedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], capacity: Int)
+class BoundedQueue[T](readOffset: Int,
+                      read: Vector[T],
+                      write: Vector[T],
+                      capacity: Int)
   extends Queue[T] with Serializable {
 
   override def isEmpty: Boolean = (read.size - readOffset == 0) && write.isEmpty
@@ -56,6 +61,8 @@ class BoundedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], capaci
   override def pushValues(values: T*): Queue[T] = pushAll(values)
 
   override def pushAll(values: TraversableOnce[T]): Queue[T] = this :++ values
+
+//  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
 
   override def pull(): (Queue[T], T) = {
     val newOffset = readOffset + 1
@@ -73,15 +80,10 @@ class BoundedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], capaci
   }
 
   override def pullOption(): (Queue[T], Option[T]) = {
-    val newOffset = readOffset + 1
-    if (newOffset == capacity) {
-      val value = read.headOption
-      val queue = new BoundedQueue[T](0, write, Vector.empty[T], capacity)
-      (queue, value)
-    } else {
-      val value = if (read.isEmpty) None else Some(read(readOffset))
-      val queue = new BoundedQueue[T](newOffset, read, write, capacity)
-      (queue, value)
+    if (isEmpty) (this, None)
+    else {
+      val (q, v) = pull()
+      (q, Some(v))
     }
   }
 
@@ -200,14 +202,21 @@ class BoundedQueue[T](readOffset: Int, read: Vector[T], write: Vector[T], capaci
     }
   }
 
-  override def toString(): String = mkString("FixedQueue(", ", ", " )")
+  override def stringPrefix: String = "BoundedQueue"
 }
 
 object BoundedQueue {
 
+  def fill[T](maxSize: Int)(el: => T): Queue[T] = {
+    BoundedQueue[T](maxSize) :++ List.fill(maxSize)(el)
+  }
+
+  def of[T](xs: T*): Queue[T] = BoundedQueue[T](xs.size) :++ xs
+
+
   def apply[T](maxSize: Int): BoundedQueue[T] = {
     if (maxSize <= 0)
-      throw new IllegalArgumentException("FixedQueue should have maxSize > 0")
+      throw new IllegalArgumentException(s"$maxSize: BoundedQueue should have maxSize > 0")
     new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
   }
 

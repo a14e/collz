@@ -30,7 +30,8 @@ object PrefixMap {
     private var currentIterator: Iterator[(Int, Node)] = leaves.iterator
 
 
-    def calcNext(): (String, T) = {
+    @tailrec
+    private final def calcNext(): (String, T) = {
       if (currentIterator.hasNext) {
         currentIterator.next()._2 match {
           case l: Leaf => (l.key, l.value.asInstanceOf[T])
@@ -323,7 +324,14 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
       case foundNode: NonEmptyNode =>
         val count = countEquals(foundNode.key, key, foundNode.startIndex, foundNode.validCount)
         if (count == foundNode.validCount) {
-          recRemove(startIndex + count, key, foundNode.leaves, leaves, internalKey)
+          /** иногда чистим пустые узлы чтобы было меньше
+            * утечек мусора. для полного их избежания
+            * пока не хватает фантазии =)
+            * */
+          if (foundNode.leaves.isEmpty)
+            leaves -= internalKey
+          else
+            recRemove(startIndex + count, key, foundNode.leaves, leaves, internalKey)
         }
     }
   }

@@ -1,6 +1,7 @@
 package a14e.collz.mut
 
 
+import scala.annotation.tailrec
 import scala.collection.generic.{CanBuildFrom, GenericCompanion}
 import scala.collection.{AbstractIterator, GenMap, GenMapLike, mutable}
 import scala.language.higherKinds
@@ -78,6 +79,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
   override def size: Int = _size
 
 
+  @tailrec
   private def recurContains(array: Array[AnyRef],
                             currentKey: Int, initKey: Int): Boolean = {
     val index = currentKey & mask
@@ -110,6 +112,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     res
   }
 
+  @tailrec
   private def recurUpdate(array: Array[AnyRef],
                           currentKey: Int, initKey: Int,
                           value: T,
@@ -181,6 +184,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
 
   override def get(key: Int): Option[T] = Option(getOrNull(key))
 
+  @tailrec
   private def recurGetOrNull(array: Array[AnyRef], currentKey: Int, initKey: Int): Any = {
     val index = currentKey & mask
     array(index) match {
@@ -215,6 +219,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     private var indexStack: List[Int] = Nil
     private var arrayStack: List[Array[AnyRef]] = Nil
 
+    @tailrec
     private def findNext(): (Int, T) = {
       def reduceStack(): Unit = {
         if (indexStack.nonEmpty) {

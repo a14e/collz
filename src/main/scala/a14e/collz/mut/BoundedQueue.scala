@@ -37,7 +37,11 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 }
 
 object BoundedQueue {
-  def apply[T](maxSize: Int): BoundedQueue[T] = new BoundedQueue[T](maxSize)
+  def apply[T](maxSize: Int): BoundedQueue[T] = {
+    if (maxSize <= 0)
+      throw new IllegalArgumentException(s"$maxSize: BoundedQueue should have maxSize > 0")
+    new BoundedQueue[T](maxSize)
+  }
 
   def fill[T](maxSize: Int)(el: => T): BoundedQueue[T] = {
     val res = BoundedQueue[T](maxSize)
@@ -53,7 +57,7 @@ object BoundedQueue {
 }
 
 
-class BoundedQueue[T](capacity: Int) extends Queue[T] {
+class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
   self =>
   private var _size: Int = 0
 
@@ -64,6 +68,8 @@ class BoundedQueue[T](capacity: Int) extends Queue[T] {
   private var write: Array[Any] = new Array[Any](capacity)
   private var writeEnd: Int = 0
 
+
+  override def stringPrefix: String = "BoundedQueue"
 
   override def clear(): Unit = {
     _size = 0
