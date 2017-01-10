@@ -3,10 +3,6 @@ package a14e.collz.mut
 import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 
-/**
-  * Created by m0hct on 10.01.2017.
-  */
-
 
 object PrefixSet {
 
