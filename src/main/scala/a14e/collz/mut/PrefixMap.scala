@@ -61,22 +61,27 @@ object PrefixMap {
     override def hasNext: Boolean = nextValue != null
   }
 
+  private final def minOf3(x: Int, y: Int, z: Int): Int = {
+    math.min(math.min(x, y), z)
+  }
 
-  private[collz] def countEquals(first: String, second: String, start: Int): Int = {
-    val minLen = math.min(first.length, second.length)
+  private[collz] def countEquals(first: String, second: String, start: Int, maxCount: Int): Int = {
+    val minLen = minOf3(first.length, second.length, start + maxCount)
     if (minLen <= start)
       return 0
-    var i = start
+
     var count = 0
+    var i = start
     while (i < minLen) {
       val char1 = first.charAt(i)
       val char2 = second.charAt(i)
 
-      if (char1 == char2) count += 1
-      else return count
+      if (char1 != char2) return count
+      else count += 1
 
       i += 1
     }
+
     count
   }
 
@@ -93,7 +98,7 @@ object PrefixMap {
 //позволяет упростить некоторые алгоритмы
 import PrefixMap._
 
-class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mutable.Map[String, T] {
+class PrefixMap[T] private[collz](root: IntMap[Node], var _size: Int) extends mutable.Map[String, T] {
 
 
   override def size: Int = _size
@@ -103,26 +108,27 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
     _size = 0
   }
 
+  private def calcIndex(key: String, startIndex: Int): Int = {
+    if (key.length == startIndex) // проверяем на пустые строки
+      emptyStringIndex else key.charAt(startIndex).toInt
+  }
+
   @tailrec
   private def recGetOrNull(startIndex: Int,
                            key: String,
                            leaves: IntMap[Node]): Any = {
-    val internalKey =
-      if (key.length == startIndex) // проверяем на пустые строки
-        emptyStringIndex else key.charAt(startIndex).toInt
+    val internalKey = calcIndex(key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null => null
       case l: Leaf =>
-        val count = countEquals(key, l.key, l.startIndex)
+        val count = countEquals(key, l.key, l.startIndex, l.validCount)
         if (count == l.validCount) l.value
         else null
       case n: NonEmptyNode =>
-        val count = countEquals(key, n.key, n.startIndex)
-        if (count != n.validCount) null
-        else {
-          recGetOrNull(startIndex + count, key, n.leaves)
-        }
+        val count = countEquals(key, n.key, n.startIndex, n.validCount)
+        if (count == n.validCount) recGetOrNull(startIndex + count, key, n.leaves)
+        else null
     }
   }
 
@@ -136,21 +142,17 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
   private def recHasPrefix(startIndex: Int,
                            key: String,
                            leaves: IntMap[Node]): Boolean = {
-    val internalKey =
-      if (key.length == startIndex) // проверяем на пустые строки
-        emptyStringIndex else key.charAt(startIndex).toInt
+    val internalKey = calcIndex (key,startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null => false
       case l: Leaf =>
-        val count = countEquals(key, l.key, l.startIndex)
+        val count = countEquals(key, l.key, l.startIndex, l.validCount)
         count + startIndex == key.length
       case n: NonEmptyNode =>
-        val count = countEquals(key, n.key, n.startIndex)
-        if (count != n.validCount) false
-        else {
-          recHasPrefix(startIndex + count, key, n.leaves)
-        }
+        val count = countEquals(key, n.key, n.startIndex, n.validCount)
+        if (count == n.validCount) recHasPrefix(startIndex + count, key, n.leaves)
+        else false
     }
   }
 
@@ -161,32 +163,36 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
   private def recFindByPrefix(startIndex: Int,
                               key: String,
                               leaves: IntMap[Node]): Iterator[(String, T)] = {
-    val internalKey =
-      if (key.length == startIndex) // проверяем на пустые строки
-        emptyStringIndex else key.charAt(startIndex).toInt
+    val internalKey = calcIndex (key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null => Iterator.empty
       case leaf: Leaf =>
-        val count = countEquals(key, leaf.key, leaf.startIndex)
+        val count = countEquals(key, leaf.key, leaf.startIndex, leaf.validCount)
         if (count + startIndex == key.length) leafIterator[T](leaf)
         else Iterator.empty
       case node: NonEmptyNode =>
-        val count = countEquals(key, node.key, node.startIndex)
+        val count = countEquals(key, node.key, node.startIndex, node.validCount)
 
         if (count + startIndex == key.length)
           PrefixMap.nodeIterator[T](node.leaves)
-        else if (count != node.validCount)
-          Iterator.empty
-        else
+        else if (count == node.validCount)
           recFindByPrefix(startIndex + count, key, node.leaves)
+        else Iterator.empty
+
     }
   }
 
-  def findForPrefix(key: String): Iterator[(String, T)] = recFindByPrefix(0, key, root)
+  def findForPrefix(key: String): Iterator[(String, T)] = {
+    if (key.isEmpty) this.iterator
+    else recFindByPrefix(0, key, root)
+  }
+
+
 
   private def mergeLeaves(init: Leaf, toAdd: Leaf): Node = {
-    val count = countEquals(init.key, toAdd.key, init.startIndex)
+    val maxCount = math.min(init.validCount, toAdd.validCount)
+    val count = countEquals(init.key, toAdd.key, init.startIndex, maxCount)
 
     val firstInSecond = count == init.validCount
     val secondInFirst = count == toAdd.validCount
@@ -216,11 +222,11 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
       new NonEmptyNode(IntMap[Node](), toAdd.key, init.startIndex, count)
     val newStartIndex = init.startIndex + count
 
-    val node1 = new NonEmptyNode(init.leaves, init.key, newStartIndex, toAdd.validCount - count)
+    val node1 = new NonEmptyNode(init.leaves, init.key, newStartIndex, init.validCount - count)
     val node2 = new Leaf(toAdd.key, toAdd.value, newStartIndex, toAdd.validCount - count)
 
-    val key1 = if (node1.validCount == 0) emptyStringIndex else node1.key.charAt(node1.startIndex).toInt
-    val key2 = if (node2.validCount == 0) emptyStringIndex else node2.key.charAt(node2.startIndex).toInt
+    val key1 = if (node1.validCount == 0) emptyStringIndex else node1.key.charAt(newStartIndex).toInt
+    val key2 = if (node2.validCount == 0) emptyStringIndex else node2.key.charAt(newStartIndex).toInt
 
     node.leaves(key1) = node1
     node.leaves(key2) = node2
@@ -238,9 +244,7 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
 
     def newLeaf() = new Leaf(key, value, startIndex, key.length - startIndex)
 
-    val internalKey =
-      if (key.length == startIndex) // проверяем на пустые строки
-        emptyStringIndex else key.charAt(startIndex).toInt
+    val internalKey = calcIndex (key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null =>
@@ -254,7 +258,7 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
         if (created ne merged)
           _size += 1
       case foundNode: NonEmptyNode =>
-        val count = countEquals(foundNode.key, key, foundNode.startIndex)
+        val count = countEquals(foundNode.key, key, foundNode.startIndex, foundNode.validCount)
         if (count == foundNode.validCount) {
           recAdd(startIndex + count, key, value, foundNode.leaves)
         } else {
@@ -273,37 +277,6 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
     this
   }
 
-  @tailrec
-  private def recRemove(startIndex: Int,
-                        key: String,
-                        node: NonEmptyNode,
-                        previousNode: NonEmptyNode,
-                        previousLeaveKey: Int): Unit = {
-
-    val count = countEquals(node.key, key, startIndex)
-
-    if (count == node.validCount) {
-      val internalKey =
-        if (key.length == startIndex) // проверяем на пустые строки
-          emptyStringIndex else key.charAt(startIndex).toInt
-      val found = node.leaves.getOrNull(internalKey)
-      found match {
-        case null =>
-        case leaf: Leaf =>
-          val leafCount = countEquals(leaf.key, key, leaf.startIndex)
-          if (leafCount == leaf.validCount) {
-            node.leaves -= internalKey
-            _size -= 1
-            if (node.leaves.isEmpty)
-              previousNode.leaves -= previousLeaveKey
-          }
-
-        case foundNode: NonEmptyNode =>
-          recRemove(startIndex + count, key, foundNode, node, internalKey)
-      }
-    }
-  }
-
 
   @tailrec
   private def recRemove(startIndex: Int,
@@ -312,22 +285,21 @@ class PrefixMap[T]private[collz](root: IntMap[Node], var _size: Int) extends mut
                         previousLeaves: IntMap[Node],
                         previousLeaveKey: Int): Unit = {
 
-    val internalKey =
-      if (key.length == startIndex) // проверяем на пустые строки
-        emptyStringIndex else key.charAt(startIndex).toInt
+    val internalKey = calcIndex (key, startIndex)
 
     leaves.getOrNull(internalKey) match {
       case null =>
       case leaf: Leaf =>
-        val leafCount = countEquals(leaf.key, key, leaf.startIndex)
-        if (leafCount == leaf.validCount) {
+        val leafCount = countEquals(leaf.key, key, leaf.startIndex, leaf.validCount)
+        val validDelete = leafCount == leaf.validCount && leafCount + startIndex == key.length
+        if (validDelete) {
           leaves -= internalKey
           _size -= 1
           if (leaves.isEmpty && (previousLeaves ne null))
             previousLeaves -= previousLeaveKey
         }
       case foundNode: NonEmptyNode =>
-        val count = countEquals(foundNode.key, key, foundNode.startIndex)
+        val count = countEquals(foundNode.key, key, foundNode.startIndex, foundNode.validCount)
         if (count == foundNode.validCount) {
           recRemove(startIndex + count, key, foundNode.leaves, leaves, internalKey)
         }

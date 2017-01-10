@@ -23,7 +23,8 @@ object PrefixSet {
 /**
   * Created by User on 09.01.2017.
   */
-class PrefixSet private[collz](val underlying: PrefixMap[Unit]) extends mutable.Set[String] with mutable.Builder[String, PrefixSet] {
+class PrefixSet private[collz](val underlying: PrefixMap[Unit])
+  extends mutable.Set[String] with mutable.Builder[String, PrefixSet] {
 
   override def size: Int = underlying.size
 
