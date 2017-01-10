@@ -4,7 +4,7 @@
 */
 package a14e.collz.mut
 
-import scala.collection.{AbstractIterator, mutable}
+import scala.collection.{AbstractIterator}
 import scala.collection.mutable.ListBuffer
 
 trait Queue[T] extends Traversable[T] with Iterable[T] {

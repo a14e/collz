@@ -6,8 +6,6 @@ package a14e.collz.mut
 
 import scala.annotation.tailrec
 import scala.collection.{AbstractIterator, mutable}
-import scala.util.Random
-
 object PrefixMap {
 
   sealed trait Node

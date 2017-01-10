@@ -6,10 +6,9 @@ package a14e.collz.mut
 
 
 import scala.annotation.tailrec
-import scala.collection.generic.{CanBuildFrom, GenericCompanion}
-import scala.collection.{AbstractIterator, GenMap, GenMapLike, mutable}
+import scala.collection.generic.CanBuildFrom
+import scala.collection.{AbstractIterator,  mutable}
 import scala.language.higherKinds
-import scala.util.Random
 
 
 object IntMap {
