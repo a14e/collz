@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import scala.collection.generic.CanBuildFrom
@@ -16,9 +20,6 @@ object PrefixSet {
   def apply(xs: String*): PrefixSet = new PrefixSet(PrefixMap[Unit]()) ++= xs
 }
 
-/**
-  * Created by User on 09.01.2017.
-  */
 class PrefixSet private[collz](val underlying: PrefixMap[Unit])
   extends mutable.Set[String] with mutable.Builder[String, PrefixSet] {
 

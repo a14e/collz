@@ -1,12 +1,13 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import scala.annotation.tailrec
 import scala.collection.{AbstractIterator, mutable}
 import scala.util.Random
 
-/**
-  * Created by User on 09.01.2017.
-  */
 object PrefixMap {
 
   sealed trait Node

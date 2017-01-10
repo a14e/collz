@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import scala.collection.generic.CanBuildFrom
@@ -15,9 +19,6 @@ object IntSet {
   def apply(xs: Int*): IntSet = new IntSet(IntMap[Unit]()) ++= xs
 }
 
-/**
-  * Created by User on 09.01.2017.
-  */
 class IntSet private[collz](val underlying: IntMap[Unit]) extends mutable.Set[Int] with mutable.Builder[Int, IntSet] {
 
   override def size: Int = underlying.size

@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import org.scalatest.{Matchers, WordSpec}
@@ -5,9 +9,6 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.collection.mutable
 import scala.util.Random
 
-/**
-  * Created by User on 10.01.2017.
-  */
 class PrefixMapSpec extends WordSpec with Matchers {
   "Tests for PrefixMap " when {
 

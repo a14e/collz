@@ -1,5 +1,8 @@
 package a14e.collz.mut
-
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.immutable.HashMap
@@ -7,9 +10,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
-/**
-  * Created by Andrew on 31.12.2016.
-  */
 class IntMapSpec extends WordSpec with Matchers {
   "Tests for IntMap " when {
 

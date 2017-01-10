@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 
@@ -39,7 +43,6 @@ object IntMap {
 import IntMap._
 
 /**
-  * Created by Andrew on 30.12.2016.
   *
   * Реализация изменяемого IntMap основанная на 16 битном префиксном дереве (16 bit trie)
   * за каждый символ принимаются куски ключа по 4 бит, таким образом максимальная глубина дерева

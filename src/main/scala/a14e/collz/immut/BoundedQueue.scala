@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.immut
 
 //import scala.collection.immutabl
@@ -42,9 +46,6 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
 }
 
-/**
-  * Created by Andrew on 18.12.2016.
-  */
 class BoundedQueue[T](readOffset: Int,
                       read: Vector[T],
                       write: Vector[T],
@@ -61,7 +62,7 @@ class BoundedQueue[T](readOffset: Int,
 
   override def pushAll(values: TraversableOnce[T]): Queue[T] = this :++ values
 
-//  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
+  //  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
 
   override def pull(): (Queue[T], T) = {
     val newOffset = readOffset + 1

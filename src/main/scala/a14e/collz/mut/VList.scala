@@ -1,3 +1,7 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import scala.collection.generic.{CanBuildFrom, GenericCompanion, GenericTraversableTemplate, SeqFactory}
@@ -17,11 +21,7 @@ object VList extends SeqFactory[VList] {
 
 }
 
-/* TODO сделать тесты лучше */
 /* TODO сделать время доступа const вместо log(n) */
-/**
-  * Created by User on 11.04.2016.
-  */
 class VList[T] protected(protected var underlying: Array[Array[Any]],
                          protected var currentIndex: Int,
                          protected var bigArraySize: Int,

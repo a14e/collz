@@ -1,11 +1,12 @@
+/*
+* This source code is licensed under the MIT license found in the
+* LICENSE.txt file in the root directory of this source tree
+*/
 package a14e.collz.mut
 
 import scala.collection.{AbstractIterator, mutable}
 import scala.collection.mutable.ListBuffer
 
-/**
-  * Created by Andrew on 31.12.2016.
-  */
 trait Queue[T] extends Traversable[T] with Iterable[T] {
   def push(value: T): Queue[T]
 
