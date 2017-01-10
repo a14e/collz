@@ -42,7 +42,6 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
 }
 
-//TODO сделать изменяемую очередь
 /**
   * Created by Andrew on 18.12.2016.
   */

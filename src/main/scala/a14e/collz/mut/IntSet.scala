@@ -22,6 +22,8 @@ class IntSet private[collz](val underlying: IntMap[Unit]) extends mutable.Set[In
 
   override def size: Int = underlying.size
 
+  override def isEmpty: Boolean = underlying.isEmpty
+
   override def newBuilder: mutable.Builder[Int, mutable.Set[Int]] = IntSet()
 
   override def result(): IntSet = this

@@ -9,7 +9,7 @@ import scala.util.Random
   * Created by User on 10.01.2017.
   */
 class PrefixMapSpec extends WordSpec with Matchers {
-  "Tests for IntMap " when {
+  "Tests for PrefixMap " when {
 
     "count equals" should {
       "be 0 if start more then one of string" in {

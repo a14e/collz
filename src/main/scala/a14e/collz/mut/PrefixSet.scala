@@ -24,6 +24,8 @@ class PrefixSet private[collz](val underlying: PrefixMap[Unit])
 
   override def size: Int = underlying.size
 
+  override def isEmpty: Boolean = underlying.isEmpty
+
   override def newBuilder: mutable.Builder[String, mutable.Set[String]] = PrefixSet()
 
   override def result(): PrefixSet = this
