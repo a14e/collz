@@ -8,14 +8,14 @@ TODO english docs in few months
 Пока находится в разработке и будет готова в течении нескольких месяцев. 
 В данный момент содержит следующие коллекции:  
 1. Мутабельные:  
-    a. VList      
-    b. BoundedQueue  
-    c. IntMap  
-    d. IntSet  
-    e. PrefixMap  
-    f. PrefixSet  
+    1) VList      
+    2) BoundedQueue  
+    3) IntMap  
+    4) IntSet  
+    5) PrefixMap  
+    6) PrefixSet  
 2. Иммутабельные:  
-    a. BoundedQueue
+    1) BoundedQueue
     
 ## Описание реализаций
 Все мутабельные коллекции не являются потокобезопасными
@@ -40,6 +40,7 @@ val list = VList[Int](1, 2, 3)
 list += 1 // list == VList(1, 2, 3, 1)
 list ++= List(2, 3) // list == VList(1, 2, 3, 1, 2, 3)
 val x = list(1) // x == 2
+
 var sum = 0
 list.foreach(sum += _) // sum == 12
 ```
