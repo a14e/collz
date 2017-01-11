@@ -4,6 +4,7 @@
 */
 package a14e.collz.immut
 
+import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
@@ -41,8 +42,6 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
   def isEmpty: Boolean
 
   def length: Int
-
-
 }
 
 class BoundedQueue[T](readOffset: Int,
@@ -60,6 +59,14 @@ class BoundedQueue[T](readOffset: Int,
   override def pushValues(values: T*): Queue[T] = pushAll(values)
 
   override def pushAll(values: TraversableOnce[T]): Queue[T] = this :++ values
+
+  override def filter(p: (T) => Boolean): Queue[T] = {
+    var res: Queue[T] = BoundedQueue[T](capacity)
+    for(x <- this)
+      if(p(x))
+        res = res :+ x
+    res
+  }
 
   //  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
 
@@ -174,17 +181,16 @@ class BoundedQueue[T](readOffset: Int,
     } else {
       val newWrite = write :+ elem
       val newReadOffset = readOffset + 1
-      if (newReadOffset == capacity) {
+      if (newReadOffset == capacity)
         new BoundedQueue[T](0, newWrite, Vector.empty[T], capacity)
-      } else {
+      else
         new BoundedQueue[T](newReadOffset, read, newWrite, capacity)
-      }
     }
   }
 
   override def :++(elems: TraversableOnce[T]): Queue[T] = {
     var res: Queue[T] = this
-    elems.foreach { x => res = res.push(x) }
+    elems.foreach(x => res = res :+ x)
     res
   }
 
@@ -219,17 +225,17 @@ object BoundedQueue {
     new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
   }
 
-  def newBuilder[A](maxSize: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {
-    private var queue: BoundedQueue[A] = BoundedQueue[A](maxSize)
+  def newBuilder[A](capacity: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {
+
+    private var queue: BoundedQueue[A] = BoundedQueue[A](capacity)
 
     override def +=(elem: A): this.type = {
       queue = (queue :+ elem).asInstanceOf[BoundedQueue[A]]
       this
     }
 
-    override def clear(): Unit = queue = BoundedQueue(maxSize)
+    override def clear(): Unit = queue = BoundedQueue(capacity)
 
     override def result(): BoundedQueue[A] = queue
   }
-
 }

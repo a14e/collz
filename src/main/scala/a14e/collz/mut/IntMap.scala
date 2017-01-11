@@ -5,9 +5,11 @@
 package a14e.collz.mut
 
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import scala.annotation.tailrec
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{AbstractIterator,  mutable}
+import scala.collection.{AbstractIterator, mutable}
 import scala.language.higherKinds
 
 
@@ -37,6 +39,7 @@ object IntMap {
   final val levelSize = 16
 
 
+  new AtomicInteger()
 }
 
 import IntMap._
@@ -221,16 +224,18 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     private var indexStack: List[Int] = Nil
     private var arrayStack: List[Array[AnyRef]] = Nil
 
+    private def reduceStack(): Unit = {
+      if (indexStack.nonEmpty) {
+        currentArray = arrayStack.head
+        currentIndex = indexStack.head
+        arrayStack = arrayStack.tail
+        indexStack = indexStack.tail
+      }
+    }
+
     @tailrec
     private def findNext(): (Int, T) = {
-      def reduceStack(): Unit = {
-        if (indexStack.nonEmpty) {
-          currentArray = arrayStack.head
-          currentIndex = indexStack.head
-          arrayStack = arrayStack.tail
-          indexStack = indexStack.tail
-        }
-      }
+
 
       if (currentIndex < levelSize) {
         currentArray(currentIndex) match {
@@ -259,13 +264,12 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     }
 
 
-    override def next(): (Int, T) = {
+    override def next(): (Int, T) =
       if (hasNext) {
         left -= 1
         findNext()
-      }
-      else Iterator.empty.next()
-    }
+      } else Iterator.empty.next()
+
 
     override def hasNext: Boolean = left != 0
   }
