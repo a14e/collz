@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/a14e/collz.svg?branch=master)](https://travis-ci.org/a14e/collz)
 
-[![codecov.io](https://codecov.io/gh/a14e/collz?branch=master)](https://codecov.io/gh/a14e/collz?branch=master)
+[![codecov.io](https://codecov.io/gh/a14e/collz/coverage.svg?branch=master)](https://codecov.io/gh/a14e/collz?branch=master)
 
 
 # Collz
@@ -28,7 +28,9 @@ TODO english docs in few months
 # Использование
 Библиотека собрана для версий 2.11.8 и 2.12.1
 Для подключения библиотки добавьте себе в .sbt файл строку
+```scala
 libraryDependencies += "com.github.a14e" %% "collz" % "0.1"
+```
 
 
     
