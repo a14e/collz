@@ -54,7 +54,6 @@ publishTo := {
   else
     Some("releases" at base + "service/local/staging/deploy/maven2/")
 }
-
 //credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 // только чтобы переписывать фаилы при сборке по http://stackoverflow.com/questions/27530507/sbt-publish-only-when-version-does-not-exist
@@ -63,4 +62,4 @@ isSnapshot := true
 pomIncludeRepository := { x => false }
 
 pgpReadOnly := false
-useGpg := true
+//useGpg := true

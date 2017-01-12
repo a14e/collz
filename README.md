@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/AndrewInstance/collz.svg?branch=master)](https://travis-ci.org/AndrewInstance/collz)
+[![Build Status](https://travis-ci.org/a14e/collz.svg?branch=master)](https://travis-ci.org/a14e/collz)
 
-[![codecov.io](http://codecov.io/github/typelevel/cats/coverage.svg?branch=master)](https://codecov.io/gh/AndrewInstance/collz?branch=master)
+[![codecov.io](https://codecov.io/gh/a14e/collz?branch=master)](https://codecov.io/gh/a14e/collz?branch=master)
 
 
 # Collz
@@ -24,7 +24,13 @@ TODO english docs in few months
 2. Иммутабельные:  
   
     1) BoundedQueue  
-    
+
+# Использование
+Библиотека собрана для версий 2.11.8 и 2.12.1
+Для подключения библиотки добавьте себе в .sbt файл строку
+libraryDependencies += "com.github.a14e" %% "collz" % "0.1"
+
+
     
 ## Описание реализаций
 Все мутабельные коллекции не являются потокобезопасными
@@ -261,7 +267,6 @@ $ sbt +package
         c. NonDeleteBoundedQueue  
         d. IntervalMap
 3. Добавить бенчмарки в репозиторий
-6. Залить в Мавен/Сонатайп или куда-нибудь еще
 
 
     
