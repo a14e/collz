@@ -8,114 +8,78 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
-
-trait Queue[T] extends Traversable[T] with Iterable[T] {
-  scala.collection.mutable.Queue
-
-  def push(value: T): Queue[T]
-
-  def pushValues(values: T*): Queue[T]
-
-  def pushAll(values: TraversableOnce[T]): Queue[T]
-
-  def pull(): (Queue[T], T)
-
-  def pullOption(): (Queue[T], Option[T])
-
-  def pullToBuff(buffer: collection.mutable.Buffer[T]): Queue[T]
-
-  def pullAll(count: Int): (Queue[T], Seq[T])
-
-  def pullAllToBuff(count: Int, buffer: collection.mutable.Buffer[T]): Queue[T]
-
-  def pullWhile(cond: T => Boolean): (Queue[T], Seq[T])
-
-  def pullWhileToBuff(cond: T => Boolean, buffer: collection.mutable.Buffer[T]): Queue[T]
-
-
-  def :+(elem: T): Queue[T]
-
-  def :++(elems: TraversableOnce[T]): Queue[T]
-
-  def apply(idx: Int): T
-
-  def isEmpty: Boolean
-
-  def length: Int
-}
-
 class BoundedQueue[T](readOffset: Int,
                       read: Vector[T],
                       write: Vector[T],
-                      capacity: Int)
-  extends Queue[T] with Serializable {
+                      val capacity: Int)
+  extends Queue[T] with Seq[T] with Serializable {
 
   override def isEmpty: Boolean = (read.size - readOffset == 0) && write.isEmpty
 
   override def iterator: Iterator[T] = read.iterator.drop(readOffset) ++ write.iterator
 
-  override def push(value: T): Queue[T] = this :+ value
+  override def push(value: T): this.type = this :+ value
 
-  override def pushValues(values: T*): Queue[T] = pushAll(values)
+  override def pushValues(values: T*): this.type = pushAll(values)
 
-  override def pushAll(values: TraversableOnce[T]): Queue[T] = this :++ values
+  override def pushAll(values: TraversableOnce[T]): this.type = this :++ values
 
-  override def filter(p: (T) => Boolean): Queue[T] = {
-    var res: Queue[T] = BoundedQueue[T](capacity)
-    for(x <- this)
-      if(p(x))
+  override def filter(p: (T) => Boolean): this.type = {
+    var res = BoundedQueue[T](capacity)
+    for (x <- this)
+      if (p(x))
         res = res :+ x
-    res
+    res.asInstanceOf[this.type]
   }
 
   //  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
 
-  override def pull(): (Queue[T], T) = {
+  override def pull(): (this.type, T) = {
     val newOffset = readOffset + 1
     if (newOffset == capacity) {
       val value = read.last
       val queue = new BoundedQueue[T](0, write, Vector.empty[T], capacity)
-      (queue, value)
+      (queue.asInstanceOf[this.type], value)
     } else {
       if (read.isEmpty)
         throw new IndexOutOfBoundsException("pull on empty queue")
       val value = read(readOffset)
       val queue = new BoundedQueue[T](newOffset, read, write, capacity)
-      (queue, value)
+      (queue.asInstanceOf[this.type], value)
     }
   }
 
-  override def pullOption(): (Queue[T], Option[T]) = {
+  override def pullOption(): (this.type, Option[T]) = {
     if (isEmpty) (this, None)
     else {
       val (q, v) = pull()
-      (q, Some(v))
+      (q.asInstanceOf[this.type], Some(v))
     }
   }
 
-  override def pullToBuff(buffer: mutable.Buffer[T]): Queue[T] = {
+  override def pullToBuff(buffer: mutable.Buffer[T]): this.type = {
     val newOffset = readOffset + 1
     if (newOffset == read.length) {
       buffer += read.last
-      new BoundedQueue[T](0, write, Vector.empty[T], capacity)
+      new BoundedQueue[T](0, write, Vector.empty[T], capacity).asInstanceOf[this.type]
     } else {
       if (read.isEmpty) this
       else {
         buffer += read(readOffset)
-        new BoundedQueue[T](newOffset, read, write, capacity)
+        new BoundedQueue[T](newOffset, read, write, capacity).asInstanceOf[this.type]
       }
     }
   }
 
-  override def pullAll(count: Int): (Queue[T], Seq[T]) = {
+  override def pullAll(count: Int): (this.type, Seq[T]) = {
     val buff = new ListBuffer[T]()
 
     val newQueue = pullAllToBuff(count, buff)
     (newQueue, buff.result())
   }
 
-  override def pullAllToBuff(count: Int, buffer: mutable.Buffer[T]): Queue[T] = {
-    var resQueue: Queue[T] = this
+  override def pullAllToBuff(count: Int, buffer: mutable.Buffer[T]): this.type = {
+    var resQueue: this.type = this
     var left = math.min(count, length)
     while (left > 0) {
       resQueue = resQueue.pullToBuff(buffer)
@@ -125,26 +89,26 @@ class BoundedQueue[T](readOffset: Int,
     resQueue
   }
 
-  override def pullWhile(cond: (T) => Boolean): (Queue[T], Seq[T]) = {
+  override def pullWhile(cond: (T) => Boolean): (this.type, Seq[T]) = {
     val buff = new ListBuffer[T]()
     val newQueue = pullWhileToBuff(cond, buff)
     (newQueue, buff.result())
   }
 
   override def pullWhileToBuff(cond: (T) => Boolean,
-                               buffer: mutable.Buffer[T]): Queue[T] = {
-    var current: Queue[T] = this
+                               buffer: mutable.Buffer[T]): this.type = {
+    var current: this.type = this
     while (current.nonEmpty) {
       val (newQueue, value) = current.pull()
       if (!cond(value))
         return current
-      current = newQueue
+      current = newQueue.asInstanceOf[this.type]
       buffer += value
     }
     current
   }
 
-  def length: Int = read.size + write.size - readOffset
+  override def length: Int = read.size + write.size - readOffset
 
   override def size: Int = length
 
@@ -173,7 +137,7 @@ class BoundedQueue[T](readOffset: Int,
     }
   }
 
-  override def :+(elem: T): Queue[T] = {
+  override def :+(elem: T): this.type = {
     val readSize = read.size
     if (readSize != capacity) {
       val newRead = read :+ elem
@@ -186,10 +150,10 @@ class BoundedQueue[T](readOffset: Int,
       else
         new BoundedQueue[T](newReadOffset, read, newWrite, capacity)
     }
-  }
+  }.asInstanceOf[this.type]
 
-  override def :++(elems: TraversableOnce[T]): Queue[T] = {
-    var res: Queue[T] = this
+  override def :++(elems: TraversableOnce[T]): this.type = {
+    var res: this.type = this
     elems.foreach(x => res = res :+ x)
     res
   }
@@ -212,11 +176,11 @@ class BoundedQueue[T](readOffset: Int,
 
 object BoundedQueue {
 
-  def fill[T](maxSize: Int)(el: => T): Queue[T] = {
+  def fill[T](maxSize: Int)(el: => T): BoundedQueue[T] = {
     BoundedQueue[T](maxSize) :++ List.fill(maxSize)(el)
   }
 
-  def of[T](xs: T*): Queue[T] = BoundedQueue[T](xs.size) :++ xs
+  def of[T](xs: T*): BoundedQueue[T] = BoundedQueue[T](xs.size) :++ xs
 
 
   def apply[T](maxSize: Int): BoundedQueue[T] = {
@@ -230,7 +194,7 @@ object BoundedQueue {
     private var queue: BoundedQueue[A] = BoundedQueue[A](capacity)
 
     override def +=(elem: A): this.type = {
-      queue = (queue :+ elem).asInstanceOf[BoundedQueue[A]]
+      queue = queue :+ elem
       this
     }
 

@@ -165,7 +165,7 @@ class BoundedQueueSpec extends WordSpec with Matchers {
 
       def iteratorOneByOne(size: Int)(xs: Int*): Unit = {
         val list = new ListBuffer[Int]()
-        var queue: Queue[Int] = BoundedQueue[Int](size)
+        var queue = BoundedQueue[Int](size)
         for (x <- xs) {
           queue = queue.push(x)
           list += x

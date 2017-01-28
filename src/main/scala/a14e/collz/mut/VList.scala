@@ -31,6 +31,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   with mutable.BufferLike[T, VList[T]]
   with mutable.Builder[T, VList[T]]
   with mutable.Iterable[T]
+  with Seq[T]
   with Serializable {
   self =>
   //

@@ -44,7 +44,7 @@ class BoundedQueueSpec extends WordSpec with Matchers {
         q3.size shouldBe 0
       }
 
-      def removeTest(q: Queue[Int]): Unit = {
+      def removeTest(q: BoundedQueue[Int]): Unit = {
         for (i <- (0 until q.size).reverse) {
           q.pull()
           q.size shouldBe i
@@ -158,7 +158,7 @@ class BoundedQueueSpec extends WordSpec with Matchers {
         (BoundedQueue[Int](3) += 1 += 2 += 3 += 4).toIterator.toList shouldBe List(2, 3, 4)
       }
 
-      def testElementsIteratorWithRemove(q: Queue[Int],
+      def testElementsIteratorWithRemove(q: BoundedQueue[Int],
                                          traversable: Traversable[Int]): Unit = {
         var list = traversable.toList
         q.toIterator.toList shouldBe list
@@ -245,7 +245,7 @@ class BoundedQueueSpec extends WordSpec with Matchers {
     }
 
     "pull all" when {
-      def testElements(q: Queue[Int],
+      def testElements(q: BoundedQueue[Int],
                        traversableOnce: TraversableOnce[Int]): Unit = {
         val takeSize = q.size - 1
         val pulled = q.pullAll(q.size - 1)
@@ -303,7 +303,7 @@ class BoundedQueueSpec extends WordSpec with Matchers {
 
 
     "foreach" when {
-      def foreachTest(q: Queue[Int],
+      def foreachTest(q: BoundedQueue[Int],
                       traversableOnce: TraversableOnce[Int]): Unit = {
         val buff = new ListBuffer[Int]()
         q.foreach(buff += _)

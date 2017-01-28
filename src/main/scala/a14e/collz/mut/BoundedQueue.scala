@@ -7,12 +7,12 @@ package a14e.collz.mut
 import scala.collection.{AbstractIterator}
 import scala.collection.mutable.ListBuffer
 
-trait Queue[T] extends Traversable[T] with Iterable[T] {
-  def push(value: T): Queue[T]
+trait Queue[T] {
+  def push(value: T): this.type
 
-  def pushValues(values: T*): Queue[T]
+  def pushValues(values: T*): this.type
 
-  def pushAll(values: TraversableOnce[T]): Queue[T]
+  def pushAll(values: TraversableOnce[T]): this.type
 
   def pull(): T
 
@@ -25,7 +25,7 @@ trait Queue[T] extends Traversable[T] with Iterable[T] {
 
   def +=(elem: T): Queue[T]
 
-  def ++=(elems: TraversableOnce[T]): Queue[T]
+  def ++=(elems: TraversableOnce[T]): this.type
 
   def apply(idx: Int): T
 
@@ -54,11 +54,11 @@ object BoundedQueue {
     res
   }
 
-  def of[T](xs: T*): Queue[T] = BoundedQueue[T](xs.size) ++= xs
+  def of[T](xs: T*): BoundedQueue[T] = BoundedQueue[T](xs.size) ++= xs
 }
 
 
-class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
+class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] with Seq[T] {
   self =>
   private var _size: Int = 0
 
@@ -99,7 +99,7 @@ class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
     writeEnd = 0
   }
 
-  def push(elem: T): Queue[T] = {
+  def push(elem: T): this.type = {
     if (readEnd != capacity) {
       appendRead(elem)
     } else {
@@ -114,10 +114,11 @@ class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
     this
   }
 
-  override def pushValues(values: T*): Queue[T] = pushAll(values)
+  override def pushValues(values: T*): this.type = pushAll(values)
 
 
-  override def pushAll(values: TraversableOnce[T]): Queue[T] = {
+
+  override def pushAll(values: TraversableOnce[T]): this.type = {
     values.foreach(push)
     this
   }
@@ -133,6 +134,12 @@ class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
     }
     _size -= 1
     if (_size < 0) _size = 0
+  }
+
+  override def head: T = {
+    if(isEmpty)
+      throw new UnsupportedOperationException("head on empty queue")
+    nextInQueue()
   }
 
   override def pull(): T = {
@@ -165,9 +172,9 @@ class BoundedQueue[T] private[collz](capacity: Int) extends Queue[T] {
     res.result()
   }
 
-  override def +=(elem: T): Queue[T] = push(elem)
+  override def +=(elem: T): this.type = push(elem)
 
-  override def ++=(elems: TraversableOnce[T]): Queue[T] = pushAll(elems)
+  override def ++=(elems: TraversableOnce[T]): this.type = pushAll(elems)
 
   override def apply(idx: Int): T = {
     if (idx < 0 || idx >= _size)
