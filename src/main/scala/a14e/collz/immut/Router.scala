@@ -15,8 +15,9 @@ import scala.reflect.ClassTag
   * а зависит только от текущих элементов в коллекции.
   * причем не может быть дублирующихся элементов.
   *
-  * Добавление занимает сложность O(n*log(n)), а удаление O(n)
-  * А сам роутинг O(1). Поэтому добавления и удаления должны быть по возможности редки
+  * Добавление и удаление занимает сложность O(log(n))
+  * А сам роутинг O(1) (в первый раз для данной конфигурации требует O(n), а дальше O(1)).
+  * Поэтому добавления и удаления должны быть по возможности редки
   *
   * пример использования: узлы в кластере и распределение между ними
   *
@@ -44,65 +45,54 @@ import scala.reflect.ClassTag
   *
   * Created by Borisenko Andrew on 28.01.2017.
   */
-class Router[T: ClassTag : Ordering] private(private val underlying: Array[T],
-                                  private val underlyingSet: Set[T]) extends Iterable[T] with Traversable[T] {
+class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T])
+  extends Iterable[T] with Traversable[T] {
 
 
-  override def size: Int = underlying.length
-
-  def length: Int = underlying.length
+  override def size: Int = underlying.size
 
   override def isEmpty: Boolean = underlying.isEmpty
 
+
+  private lazy val table = underlying.toVector
+
   def +(x: T): Router[T] = {
-    val newSet = underlyingSet + x
-    if (newSet.size == underlyingSet.size) this
-    else {
-      val res = (underlying :+ x).sorted
-      new Router(res, newSet)
-    }
+    val newSet = underlying + x
+    new Router(newSet)
   }
 
-  def contains(x: T): Boolean = underlyingSet.contains(x)
+  def contains(x: T): Boolean = underlying.contains(x)
 
   def ++(xs: TraversableOnce[T]): Router[T] = {
-    val buffer = new ArrayBuffer[T](underlying.length) ++= underlying
-    var newSet = underlyingSet
-    var updated = false
-    for (x <- xs) {
-      if (!newSet(x)) {
-        updated = true
-        newSet += x
-        buffer += x
-      }
-    }
-    val res = scala.util.Sorting.stableSort[T](buffer)
-    new Router(res, newSet)
+    val newSet = underlying ++ xs
+    new Router(newSet)
   }
 
   def -(x: T): Router[T] = {
-    if (underlyingSet(x)) {
-      val res = new Array[T](underlying.length - 1)
-      var i = 0
-      for (temp <- underlying)
-        if (temp != x) {
-          res(i) = temp
-          i += 1
-        }
+    val newSet = underlying - x
+    new Router(newSet)
+  }
 
-      val newSet = underlyingSet - x
-      new Router(res, newSet)
-    } else this
+  // взято отсюда https://en.wikipedia.org/wiki/Xorshift =)
+  private def xorshift64mul(input: Long): Long = {
+    var x = input
+    x ^= x >> 12 // a
+    x ^= x << 25 // b
+    x ^= x >> 27 // c
+    x * 0x2545F4914F6CDD1DL
   }
 
   // на основе хешей из стандартной библиотеки
   // который использует мур мур хэш =)
   private def betterHash(hcode: Int): Int = {
     //    hcode ^ (hcode >>> 16)
-    var h: Int = hcode + ~(hcode << 9)
-    h = h ^ (h >>> 14)
-    h = h + (h << 4)
-    h ^ (h >>> 10)
+
+    //    var h: Int = hcode + ~(hcode << 9)
+    //    h = h ^ (h >>> 14)
+    //    h = h + (h << 4)
+    //    h ^ (h >>> 10)
+    val in = (size << 32) | hcode
+    xorshift64mul(in).toInt
   }
 
   def route[KEY](key: KEY): T = {
@@ -110,8 +100,8 @@ class Router[T: ClassTag : Ordering] private(private val underlying: Array[T],
       throw new UnsupportedOperationException("route on empty router")
 
     val h = betterHash(key.hashCode())
-    val i = h.abs % underlying.length
-    underlying(i)
+    val i = h.abs % underlying.size
+    table(i)
   }
 
 
@@ -121,11 +111,11 @@ class Router[T: ClassTag : Ordering] private(private val underlying: Array[T],
 }
 
 object Router {
-  def empty[T: ClassTag : Ordering] = new Router[T](new Array[T](0), Set[T]())
+  def empty[T: Ordering] = new Router[T](new collection.immutable.TreeSet[T]())
 
-  def apply[T: ClassTag : Ordering](xs: T*): Router[T] = empty[T] ++ xs
+  def apply[T: Ordering](xs: T*): Router[T] = empty[T] ++ xs
 
-
+  //TODO протестировать
   implicit def canBuildFrom[A: ClassTag : Ordering]: CanBuildFrom[TraversableOnce[_], A, Router[A]] =
     new CanBuildFrom[TraversableOnce[_], A, Router[A]] {
 
@@ -133,6 +123,9 @@ object Router {
 
       override def apply(): mutable.Builder[A, Router[A]] = newBuilder[A]
     }
+
+  //TODO протестировать
+
 
   def newBuilder[A: ClassTag : Ordering]: mutable.Builder[A, Router[A]] = new mutable.Builder[A, Router[A]] {
     private var internal = empty[A]

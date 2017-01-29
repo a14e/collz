@@ -94,8 +94,6 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
                 private var _size: Int = 0)
   extends scala.collection.mutable.Map[Int, T] with collection.mutable.Builder[(Int, T), IntMap[T]] {
 
-  override def newBuilder: mutable.Builder[(Int, T), mutable.Map[Int, T]] = new IntMap[T]()
-
   override def clear(): Unit = {
     underlying = new Array[AnyRef](levelSize)
     _size = 0

@@ -31,7 +31,6 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   with mutable.BufferLike[T, VList[T]]
   with mutable.Builder[T, VList[T]]
   with mutable.Iterable[T]
-  with Seq[T]
   with Serializable {
   self =>
   //
@@ -178,7 +177,6 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
     addElementToArray(array, x)
   }
 
-  override def append(xs: T*): Unit = appendAll(xs)
 
   override def appendAll(xs: TraversableOnce[T]): Unit = {
     var array = underlying(bigArraySize - 1)
@@ -195,9 +193,9 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
 
-  override def filter(f: T => Boolean): VList[T] = {
+  override def filter(cond: T => Boolean): VList[T] = {
     val list = new VList[T]()
-    foreach(x => if (f(x)) list += x)
+    foreach(x => if (cond(x)) list += x)
     list
   }
 

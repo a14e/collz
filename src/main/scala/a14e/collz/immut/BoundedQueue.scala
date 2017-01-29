@@ -24,6 +24,7 @@ class BoundedQueue[T](readOffset: Int,
 
   override def pushAll(values: TraversableOnce[T]): this.type = this :++ values
 
+  //TODO протестировать
   override def filter(p: (T) => Boolean): this.type = {
     var res = BoundedQueue[T](capacity)
     for (x <- this)
@@ -49,6 +50,7 @@ class BoundedQueue[T](readOffset: Int,
     }
   }
 
+  //TODO протестировать
   override def pullOption(): (this.type, Option[T]) = {
     if (isEmpty) (this, None)
     else {
@@ -180,7 +182,8 @@ object BoundedQueue {
     BoundedQueue[T](maxSize) :++ List.fill(maxSize)(el)
   }
 
-  def of[T](xs: T*): BoundedQueue[T] = BoundedQueue[T](xs.size) :++ xs
+  //TODO протестировать
+  def of[T](xs: T*): BoundedQueue[T] = (newBuilder[T](xs.size) ++= xs).result()
 
 
   def apply[T](maxSize: Int): BoundedQueue[T] = {
@@ -189,6 +192,7 @@ object BoundedQueue {
     new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
   }
 
+  //TODO протестировать
   def newBuilder[A](capacity: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {
 
     private var queue: BoundedQueue[A] = BoundedQueue[A](capacity)

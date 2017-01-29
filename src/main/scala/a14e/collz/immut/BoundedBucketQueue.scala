@@ -18,6 +18,7 @@ import scala.collection.mutable
   */
 class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) extends Queue[T] {
 
+  //TODO протестировать
   override def push(value: T): this.type = {
     val newQueue = queue.push(value)
     val newBucket =
@@ -29,8 +30,10 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
     new BoundedBucketQueue[T](newQueue, newBucket).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def pushValues(values: T*): this.type = pushAll(values)
 
+  //TODO протестировать
   override def pushAll(values: TraversableOnce[T]): this.type = {
     var newBucket = bucket
     var newQueue = queue
@@ -42,6 +45,7 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
     new BoundedBucketQueue[T](newQueue, newBucket).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def pull(): (this.type, T) = {
     if (isEmpty)
       throw new UnsupportedOperationException("pull on empty queue")
@@ -50,53 +54,65 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
     (newBucketQueue, newValue)
   }
 
+  //TODO протестировать
   override def pullOption(): (this.type, Option[T]) = {
     val (newQueue, newValue) = queue.pullOption()
     val newBucketQueue = new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
     (newBucketQueue, newValue)
   }
 
+  //TODO протестировать
   override def pullToBuff(buffer: mutable.Buffer[T]): this.type = {
     val newQueue = queue.pullToBuff(buffer)
     new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def pullAll(count: Int): (this.type, Seq[T]) = {
     val (newQueue, seq) = queue.pullAll(count)
     val resQueue = new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
     (resQueue, seq)
   }
 
+  //TODO протестировать
   def clearBucket: (this.type, List[T]) = {
     val res = new BoundedBucketQueue[T](queue, Nil).asInstanceOf[this.type]
     (res, bucket)
   }
 
+  //TODO протестировать
   def withEmptyBucket: this.type = {
     new BoundedBucketQueue[T](queue, Nil).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def pullAllToBuff(count: Int, buffer: mutable.Buffer[T]): this.type = {
     val newQueue = queue.pullAllToBuff(count, buffer)
     new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def pullWhile(cond: (T) => Boolean): (this.type, Seq[T]) = {
     val (newQueue, seq) = queue.pullWhile(cond)
     val resQueue = new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
     (resQueue, seq)
   }
 
+  //TODO протестировать
   override def pullWhileToBuff(cond: (T) => Boolean, buffer: mutable.Buffer[T]): this.type = {
     val newQueue = queue.pullWhileToBuff(cond, buffer)
     new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
   }
 
+  //TODO протестировать
   override def :+(elem: T): this.type = push(elem)
 
+  //TODO протестировать
   override def :++(elems: TraversableOnce[T]): this.type = pushAll(elems)
 
+  //TODO протестировать
   override def apply(idx: Int): T = queue(idx)
 
+  //TODO протестироватьы
   override def isEmpty: Boolean = queue.isEmpty
 }

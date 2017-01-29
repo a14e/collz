@@ -81,6 +81,14 @@ class RouterSpec extends WordSpec with Matchers {
         found.toSet.size shouldBe router.size
       }
 
+      "should route to all by rand numb" in {
+        val router = Router(1 to 10: _*)
+
+        val data = (1 to 100).map(_ => Random.nextInt())
+        val found = data.map(router.route)
+        found.toSet.size shouldBe router.size
+      }
+
       "should find each time same values" in {
         val router = Router(1 to 5: _*)
 
@@ -124,7 +132,6 @@ class RouterSpec extends WordSpec with Matchers {
 
       "remove to empty" in {
         val router = Router(1 to 3: _*) - 1 - 2 - 3
-        router.length shouldBe 0
         router.size shouldBe 0
         router.isEmpty shouldBe true
       }
