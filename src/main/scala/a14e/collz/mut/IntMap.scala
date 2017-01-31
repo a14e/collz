@@ -18,10 +18,14 @@ import scala.util.Random
 object IntMap {
 
   implicit def canBuildFrom[B] = new CanBuildFrom[mutable.Map[_, _], (Int, B), IntMap[B]] {
-    def apply(from: mutable.Map[_, _]): mutable.Builder[(Int, B), IntMap[B]] = apply()
+    def apply(from: mutable.Map[_, _]): mutable.Builder[(Int, B), IntMap[B]] = newBuilder[B]
 
-    def apply(): mutable.Builder[(Int, B), IntMap[B]] = new IntMap[B]()
+    def apply(): mutable.Builder[(Int, B), IntMap[B]] = newBuilder[B]
   }
+
+  def empty[B]: IntMap[B] = IntMap[B]()
+
+  def newBuilder[B]:  mutable.Builder[(Int, B), IntMap[B]] = IntMap()
 
   def apply[T](xs: (Int, T)*): IntMap[T] = new IntMap[T]() ++= xs
 
@@ -53,7 +57,6 @@ object IntMap {
   final val bitLevel = 4
   // количество элементов в одном узле(на одном уровне)
   final val levelSize = 16
-
 
 }
 
@@ -92,7 +95,7 @@ import IntMap._
   */
 class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef](IntMap.levelSize),
                 private var _size: Int = 0)
-  extends scala.collection.mutable.Map[Int, T] with collection.mutable.Builder[(Int, T), IntMap[T]] {
+  extends scala.collection.mutable.AbstractMap[Int, T] with collection.mutable.Builder[(Int, T), IntMap[T]] {
 
   override def clear(): Unit = {
     underlying = new Array[AnyRef](levelSize)
@@ -132,6 +135,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
   /**
     * поиск ключа в коллекции
     * сложность операции O(log16(n)) в худшем случае
+    *
     * @param key ключ для поиска
     * @return true если есть такой клоюч и false в других случаях
     */
@@ -225,6 +229,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     * предыдущее значение, если было, удаляется
     *
     * сложность операции в худшем случае O(log16(n))
+    *
     * @param key   ключ для добавления
     * @param value значение для добавления
     */
@@ -281,6 +286,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     * удаление ключа из коллекции, если ключа нет,
     * то ничего не удаляется
     * сложность операции в худшем случае O(log16(n))
+    *
     * @param key ключ для удаления
     * @return возвращает эту коллекцию
     */
@@ -292,6 +298,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
   /**
     * возвращает Option c результатом поиска по ключу
     * сложность операции O(log16(n)) в худшем случае
+    *
     * @param key ключ для поиска
     * @return Some(..) со значением если найдено и None в других случаях
     */

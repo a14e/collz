@@ -6,6 +6,34 @@ package a14e.collz.immut
 
 import scala.collection.mutable
 
+
+object BoundedBucketQueue {
+  def apply[A](maxSize: Int): BoundedBucketQueue[A] = {
+    if (maxSize <= 0)
+      throw new UnsupportedOperationException(s"max size should be > 0, but $maxSize reached")
+    new BoundedBucketQueue(BoundedQueue[A](maxSize), Nil)
+  }
+
+  //  def empty
+
+
+  //TODO протестировать
+  def newBuilder[A](capacity: Int): mutable.Builder[A, BoundedBucketQueue[A]] =
+    new mutable.Builder[A, BoundedBucketQueue[A]] {
+
+      private var queue: BoundedBucketQueue[A] = BoundedBucketQueue[A](capacity)
+
+      override def +=(elem: A): this.type = {
+        queue = queue :+ elem
+        this
+      }
+
+      override def clear(): Unit = queue = BoundedBucketQueue(capacity)
+
+      override def result(): BoundedBucketQueue[A] = queue
+    }
+}
+
 /**
   * TODO протестировать
   *
@@ -55,11 +83,13 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
   }
 
   //TODO протестировать
-  override def pullOption(): (this.type, Option[T]) = {
-    val (newQueue, newValue) = queue.pullOption()
-    val newBucketQueue = new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
-    (newBucketQueue, newValue)
-  }
+  override def pullOption(): (this.type, Option[T]) =
+    if (isEmpty) (this, None: Option[T])
+    else {
+      val (newQueue, newValue) = this.pull()
+
+      (newQueue.asInstanceOf[this.type], Some(newValue))
+    }
 
   //TODO протестировать
   override def pullToBuff(buffer: mutable.Buffer[T]): this.type = {
@@ -115,4 +145,6 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
 
   //TODO протестироватьы
   override def isEmpty: Boolean = queue.isEmpty
+
+  override def toString: String = "BoundedBucketQueue(" + queue + ", " + bucket + ")"
 }

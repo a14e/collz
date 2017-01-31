@@ -19,17 +19,19 @@ TODO english docs in few months
     3) IntMap  
     4) IntSet  
     5) PrefixMap  
-    6) PrefixSet  
+    6) PrefixSet
       
 2. Иммутабельные:  
   
-    1) BoundedQueue  
+    1) BoundedQueue    
+    2) BoundedBucketQueue      
+    3) Router  
 
 # Использование
 Библиотека собрана для версий 2.11.8 и 2.12.1
 Для подключения библиотки добавьте себе в .sbt файл строку
 ```scala
-libraryDependencies += "com.github.a14e" %% "collz" % "0.1"
+libraryDependencies += "com.github.a14e" %% "collz" % "0.2"
 ```
 
 
@@ -107,7 +109,7 @@ val queue2 =  queue1 :+ 2 // queue2 == BoundedQueue(1, 2)
 val queue3 =  queue1 :+ 3 // queue3 == BoundedQueue(2, 3)
 
 val (queue4, x1) = queue3.pull() // x1 == 2, queue4 == BoundedQueue(3)
-val (queue5, x2) = queue4.pull() // x2 == 3, queue == BoundedQueue()
+val (queue5, x2) = queue4.pull() // x2 == 3, queue5 == BoundedQueue()
 
 val queue6 = queue5 :++ List(1, 2, 3) // BoundedQueue(2, 3)
 val x3 = queue6(0) // x3 == 2
@@ -245,6 +247,54 @@ set += "string3"
 // set == PrefixSet("stringWithSuffix", "string2", "anotherString", "string3")
 ```
 
+### BoundedBucketQueue 
+В целом очень похож на BoundedQueue, но не удаляет прошлые значения, а сохраняет их
+в корзине (bucket), которая заполняется по принцыпу стека
+
+так как коллекция состояит из 2 подколлекций, то не имеет смысла ей наследовать разного рода Iterable[_] и тд.
+Поэтому для доступа к итерациям нужно сначала вызвать методы queue или bucket
+
+```scala
+import a14e.collz.immut.BoundedBucketQueue
+
+val queue0 = BoundedBucketQueue[Int](2)
+val queue1 =  queue0 :+ 1 // queue1.queue == BoundedQueue(1) и queue1.bucket == Nil
+val queue2 =  queue1 :+ 2 // queue2.queue == BoundedQueue(1, 2) и queue1.bucket == Nil
+val queue3 =  queue1 :+ 3 // queue3.queue == BoundedQueue(2, 3) и queue1.bucket == List(1)
+
+val (queue4, x1) = queue3.pull() // x1 == 2, queue4 == BoundedQueue(3) и queue1.bucket == List(1)
+val (queue5, x2) = queue4.pull() // x2 == 3, queue5 == BoundedQueue() и queue1.bucket == List(1)
+
+val queue6 = queue5 :++ List(1, 2, 3) // queue == BoundedQueue(2, 3) и queue1.bucket == List(1, 1)
+val x3 = queue6(0) // x3 == 2
+val x4 = queue6(1) // x4 == 3
+
+```
+
+### Router
+Простой класс для роутинга. Нужен для случайного выбора из входящих элементов по некоторому ключу.
+Ключем может быть любой наследник Any. Элементы будут выбиратся примерно случайно, но однозначно для каждого ключа.
+Независимо от порядка добавления роутинг будет однозначным. Но при изменении даже на 1 элемент распределение по 
+ключам может сильно изменится.
+
+```scala
+import a14e.collz.immut.Router
+
+
+val router = Router("127.0.0.1:2222", "127.0.0.1:2223", "127.0.0.1:2224")
+
+
+val id1 = 1
+val id2 = 2
+val id3 = 2
+
+router.route(id1) // 127.0.0.1:2223
+router.route(id2) // 127.0.0.1:2224
+router.route(id3) // 127.0.0.1:2222
+
+
+```
+
 ## Сборка из исходных кодов
 Проект собирается для scala 2.11.8 и 2.12.1
   
@@ -262,12 +312,7 @@ $ sbt +package
 1. Сделать нормальную документацию на англ языке (English docs)
 2. Добавить новые коллекции 
     1) иммутабельные:  
-        a. PrefixSet   
-        b. PrefixMap  
-        c. NonDeleteBoundedQueue
-    2) мутабельные:
-        c. NonDeleteBoundedQueue  
-        d. IntervalMap
+        a. IntervalMap  
 3. Добавить бенчмарки в репозиторий
 
 

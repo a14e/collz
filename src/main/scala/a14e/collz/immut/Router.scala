@@ -73,29 +73,14 @@ class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T
     new Router(newSet)
   }
 
-  // взято отсюда https://en.wikipedia.org/wiki/Xorshift =)
-  private def xorshift64mul(input: Long): Long = {
-    var x = input
-    x ^= x >> 12 // a
-    x ^= x << 25 // b
-    x ^= x >> 27 // c
-    x * 0x2545F4914F6CDD1DL
-  }
 
-  // на основе хешей из стандартной библиотеки
-  // который использует мур мур хэш =)
+
+  // на основе хешей из стандартной библиотеки java
   private def betterHash(hcode: Int): Int = {
-    //    hcode ^ (hcode >>> 16)
-
-    //    var h: Int = hcode + ~(hcode << 9)
-    //    h = h ^ (h >>> 14)
-    //    h = h + (h << 4)
-    //    h ^ (h >>> 10)
-    val in = (size << 32) | hcode
-    xorshift64mul(in).toInt
+        hcode ^ (hcode >>> 16)
   }
 
-  def route[KEY](key: KEY): T = {
+  def route(key: Any): T = {
     if (isEmpty)
       throw new UnsupportedOperationException("route on empty router")
 
@@ -111,6 +96,7 @@ class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T
 }
 
 object Router {
+
   def empty[T: Ordering] = new Router[T](new collection.immutable.TreeSet[T]())
 
   def apply[T: Ordering](xs: T*): Router[T] = empty[T] ++ xs

@@ -5,7 +5,6 @@ package a14e.collz.mut
 */
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
@@ -18,6 +17,7 @@ class IntMapSpec extends WordSpec with Matchers {
         IntMap[Int]().isEmpty shouldBe true
         IntMap[Int](1 -> 1).isEmpty shouldBe false
         IntMap[Int](1 -> 2, 2 -> 2).isEmpty shouldBe false
+
       }
 
       "single element" in {
