@@ -6,6 +6,7 @@ package a14e.collz.mut
 
 import scala.annotation.tailrec
 import scala.collection.{AbstractIterator, mutable}
+
 object PrefixMap {
 
   sealed trait Node
@@ -122,7 +123,7 @@ import PrefixMap._
   *
   * в описании данной стрктуры термины ключ и строка применяются в одном смысле
   *
-  * @param root корневой узел
+  * @param root  корневой узел
   * @param _size размер коллекции
   * @tparam T тип значений в коллекции
   */
@@ -142,7 +143,8 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
     * если startIndex равен длине строки(индекс для пустого символа), тогда мы считаем, что индекс равен
     * 0x100,
     * иначе просто приводим Char по инлексу startIndex к типу Int
-    * @param key строка, по которой стоит брать ключ
+    *
+    * @param key        строка, по которой стоит брать ключ
     * @param startIndex индекс в строке для ключа
     * @return индекс в узле для данного ключа
     */
@@ -157,9 +159,10 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
     * рекурентная функция для поиска значения в префиксном редеве по ключу
     * сложность поиска в худшем случае зависит только от длины ключа(строк)
     * O(n), где n -- длина строки
+    *
     * @param startIndex индекс в строке для проверки в текущем узле
-    * @param key ключ для поиск
-    * @param leaves IntMap для хранения данных в нелистовых узлах
+    * @param key        ключ для поиск
+    * @param leaves     IntMap для хранения данных в нелистовых узлах
     * @return найденное значение, приведенное к типу Any, либо null
     */
   @tailrec
@@ -184,6 +187,7 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
   /**
     * функция возвращает значение с данным ключем если найдено, либо null
     * сложность операции O(n), где n -- длина ключа
+    *
     * @param key ключ для поиска
     * @return значение с данным ключем если найдено, либо null
     */
@@ -192,6 +196,7 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
   /**
     * функция возвращает Some(...) c значеним с данным ключем если найдено, либо None
     * сложность операции O(n), где n -- длина ключа
+    *
     * @param key ключ для поиска
     * @return Some(...) c значеним с данным ключем если найдено, либо None
     */
@@ -200,6 +205,7 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
   /**
     * функция возвращает true если данная коллекция содержит ключ key, иначе false
     * сложность операции O(n), где n -- длина ключа
+    *
     * @param key ключ для поиска
     * @return true если данная коллекция содержит ключ key, иначе false
     */
@@ -252,6 +258,50 @@ class PrefixMap[T] private[collz](private val root: IntMap[Node],
   def findForPrefix(key: String): Iterator[(String, T)] = {
     if (key.isEmpty) this.iterator
     else recFindByPrefix(0, key, root)
+  }
+
+
+  @tailrec
+  private def recFindClosestPrefix(startIndex: Int,
+                                   key: String,
+                                   leaves: IntMap[Node],
+                                   lastIterator: () => (Iterator[(String, T)], Int)): (Iterator[(String, T)], Int) = {
+    if (startIndex == key.length)
+      return lastIterator()
+
+
+    val internalKey = calcIndex(key, startIndex)
+
+    leaves.getOrNull(internalKey) match {
+      case null => lastIterator()
+      case leaf: Leaf =>
+        val count = countEquals(key, leaf.key, leaf.startIndex, leaf.validCount)
+        val totalCount = count + startIndex
+        val iter = leafIterator[T](leaf)
+        (iter, totalCount)
+      case node: NonEmptyNode =>
+        val count = countEquals(key, node.key, node.startIndex, node.validCount)
+
+        def currentIterator(): (Iterator[(String, T)], Int) = {
+          val iter = PrefixMap.nodeIterator[T](node.leaves)
+          val totalCount = count + startIndex
+          (iter, totalCount)
+        }
+
+        if (count == node.validCount) {
+          recFindClosestPrefix(startIndex + count, key, node.leaves, () => currentIterator())
+        } else {
+          currentIterator()
+        }
+    }
+  }
+
+  // TODO протестировать
+  def findClosesByPrefix(key: String): (Iterator[(String, T)], Int) = {
+    def currentIterator() = (this.iterator, 0)
+
+    recFindClosestPrefix(0, key, root, () => currentIterator())
+
   }
 
 

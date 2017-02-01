@@ -110,7 +110,6 @@ class PrefixMapSpec extends WordSpec with Matchers {
       }
 
 
-
       "multiple nesting elements" in {
         testSizeByData("a" -> 1, "ab" -> 1, "abc" -> 1, "ac" -> 1)
 
@@ -457,8 +456,8 @@ class PrefixMapSpec extends WordSpec with Matchers {
               prefixMap -= randomString
               map -= randomString
           }
-//          val prefixList = prefixMap.keysIterator.toList.sorted
-//          val mapList = map.keysIterator.toList.sorted
+          //          val prefixList = prefixMap.keysIterator.toList.sorted
+          //          val mapList = map.keysIterator.toList.sorted
           prefixMap.size shouldBe map.size
           for ((k, v) <- map) {
             prefixMap.contains(k) shouldBe true
@@ -568,6 +567,155 @@ class PrefixMapSpec extends WordSpec with Matchers {
         testFindByPrefixByData(strings: _*)
       }
 
+    }
+
+
+    "find by closest prefix" should {
+      def testFindByClosestPrefixByData(data: List[(String, Int)],
+                                        testAndRes: List[(String, (List[String], Int))]): Unit = {
+        val map = PrefixMap(data: _*)
+        for ((test, (resList, resCount)) <- testAndRes) {
+          val (iter, count) = map.findClosesByPrefix(test)
+          count shouldBe resCount
+          val foundList = iter.map { case (k, _) => k }.toList.sorted
+          val expectedList = resList.sorted
+          foundList shouldBe expectedList
+        }
+      }
+
+      "single element" in {
+        val data = List("a" -> 1)
+        val testAndRes =
+          List("" -> (List("a"), 0),
+            "b" -> (List("a"), 0),
+            "a" -> (List("a"), 1))
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "single empty element" in {
+        val data = List("" -> 0)
+        val testAndRes =
+          List("" -> (List(""), 0),
+            "b" -> (List(""), 0),
+            "a" -> (List(""), 0))
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "multiple elements in first level" in {
+        val data = List("a" -> 1, "b" -> 1, "c" -> 1)
+        val testAndRes =
+          List("" -> (List("a", "b", "c") -> 0),
+            "a" -> (List("a") -> 1),
+            "b" -> (List("b") -> 1),
+            "c" -> (List("c") -> 1),
+            "d" -> (List("a", "b", "c") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "multiple elements in first level including empty" in {
+        val data = List("" -> 1, "b" -> 1, "c" -> 1)
+        val testAndRes =
+          List("" -> (List("", "b", "c") -> 0),
+            "a" -> (List("", "b", "c") -> 0),
+            "b" -> (List("b") -> 1),
+            "c" -> (List("c") -> 1),
+            "d" -> (List("", "b", "c") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+
+      }
+
+      "multiple elements in first level with same elements" in {
+        val data = List("b" -> 1, "b" -> 1, "c" -> 1)
+        val testAndRes =
+          List("" -> (List("b", "c") -> 0),
+            "a" -> (List("b", "c") -> 0),
+            "b" -> (List("b") -> 1),
+            "c" -> (List("c") -> 1),
+            "d" -> (List("b", "c") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "multiple elements in second level" in {
+        val data = List("ab" -> 1, "ac" -> 1)
+        val testAndRes =
+          List("" -> (List("ab", "ac") -> 0),
+            "a" -> (List("ab", "ac") -> 1),
+            "ab" -> (List("ab") -> 2),
+            "ac" -> (List("ac") -> 2),
+            "d" -> (List("ab", "ac") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "multiple elements in second level including empty" in {
+        val data = List("a" -> 1, "ab" -> 1, "ac" -> 1)
+        val testAndRes =
+          List("" -> (List("a", "ab", "ac") -> 0),
+            "a" -> (List("a", "ab", "ac") -> 1),
+            "ab" -> (List("ab") -> 2),
+            "ac" -> (List("ac") -> 2),
+            "d" -> (List("a", "ab", "ac") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+
+      }
+
+      "multiple elements in second level including same" in {
+        val data = List("ab" -> 1, "ac" -> 1, "ab" -> 1)
+        val testAndRes =
+          List("" -> (List("ab", "ac") -> 0),
+            "a" -> (List("ab", "ac") -> 1),
+            "ab" -> (List("ab") -> 2),
+            "ac" -> (List("ac") -> 2),
+            "d" -> (List("ab", "ac") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+      "multiple elements first and second levels" in {
+        val data = List("ab" -> 1, "ac" -> 1, "c" -> 1, "d" -> 1)
+        val testAndRes =
+          List("" -> (List("ab", "ac", "c", "d") -> 0),
+            "a" -> (List("ab", "ac") -> 1),
+            "arrr" -> (List("ab", "ac") -> 1),
+            "ab" -> (List("ab") -> 2),
+            "ac" -> (List("ac") -> 2),
+            "c" -> (List("c") -> 1),
+            "ca" -> (List("c") -> 1),
+            "d" -> (List("d") -> 1),
+            "f" -> (List("ab", "ac", "c", "d") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
+
+
+      "multiple nesting elements" in {
+        val data = List("a" -> 1, "abbbb" -> 1, "abbbbc" -> 1, "abc" -> 1, "ac" -> 1)
+        val testAndRes =
+          List("" -> (List("a", "abbbb", "abbbbc", "abc", "ac") -> 0),
+            "a" -> (List("a", "abbbb", "abbbbc", "abc", "ac") -> 1),
+            "arrr" -> (List("a", "abbbb", "abbbbc", "abc", "ac") -> 1),
+            "ab" -> (List("abbbb", "abbbbc", "abc") -> 2),
+            "abbbb" -> (List("abbbb", "abbbbc") -> 5),
+            "abbbbc" -> (List("abbbbc") -> 6),
+            "ac" -> (List("ac") -> 2),
+            "f" -> (List("a", "abbbb", "abbbbc", "abc", "ac") -> 0)
+          )
+
+        testFindByClosestPrefixByData(data, testAndRes)
+      }
     }
   }
 
