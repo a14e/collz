@@ -84,7 +84,7 @@ class RouterSpec extends WordSpec with Matchers {
       "should route to all by rand numb" in {
         val router = Router(1 to 10: _*)
 
-        val data = (1 to 100).map(_ => Random.nextInt())
+        val data = (1 to 200).map(_ => Random.nextInt())
         val found = data.map(router.route)
         found.toSet.size shouldBe router.size
       }

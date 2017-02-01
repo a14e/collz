@@ -28,7 +28,7 @@ trait Queue[T] {
 
   def :++(elems: TraversableOnce[T]): this.type
 
-  def apply(idx: Int): T
+//  def apply(idx: Int): T
 
   def isEmpty: Boolean
 }

@@ -272,59 +272,76 @@ class BoundedQueueSpec extends WordSpec with Matchers {
         (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5).headOption shouldBe Some(4)
       }
 
-      "last" should {
-        "have right values while read vector non fill" in {
-          BoundedQueue[Int](2).lastOption shouldBe None
-
-          (BoundedQueue[Int](2) :+ 2).lastOption shouldBe Some(2)
-
-          (BoundedQueue[Int](2) :+ 2 :+ 3).lastOption shouldBe Some(3)
-        }
-
-        "have right values while write vector non fill" in {
-          (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3).lastOption shouldBe Some(3)
-          (BoundedQueue[Int](3) :+ 1 :+ 2 :+ 3 :+ 3).lastOption shouldBe Some(3)
-        }
-
-        "after full rotate" in {
-          (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4).lastOption shouldBe Some(4)
-          (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5).lastOption shouldBe Some(5)
-        }
-      }
-
-      "apply" should {
-        "have right values while read vector non fill" in {
-          val q1 = BoundedQueue[Int](2) :+ 2
-          q1(0) shouldBe 2
-
-          val q2 = BoundedQueue[Int](2) :+ 2 :+ 3
-          q2(0) shouldBe 2
-          q2(1) shouldBe 3
-        }
-
-        "have right values while write vector non fill" in {
-          val q1 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3
-          q1(0) shouldBe 2
-          q1(1) shouldBe 3
-
-          val q2 = BoundedQueue[Int](3) :+ 1 :+ 2 :+ 3 :+ 3
-          q2(0) shouldBe 2
-          q2(1) shouldBe 3
-          q2(2) shouldBe 3
-        }
-
-        "after full rotate" in {
-          val q1 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4
-          q1(0) shouldBe 3
-          q1(1) shouldBe 4
-
-          val q2 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5
-          q2(0) shouldBe 4
-          q2(1) shouldBe 5
-        }
-      }
-
     }
+
+    "last" should {
+      "have right values while read vector non fill" in {
+        BoundedQueue[Int](2).lastOption shouldBe None
+
+        (BoundedQueue[Int](2) :+ 2).lastOption shouldBe Some(2)
+
+        (BoundedQueue[Int](2) :+ 2 :+ 3).lastOption shouldBe Some(3)
+      }
+
+      "have right values while write vector non fill" in {
+        (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3).lastOption shouldBe Some(3)
+        (BoundedQueue[Int](3) :+ 1 :+ 2 :+ 3 :+ 3).lastOption shouldBe Some(3)
+      }
+
+      "after full rotate" in {
+        (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4).lastOption shouldBe Some(4)
+        (BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5).lastOption shouldBe Some(5)
+      }
+    }
+
+    "apply" should {
+      "have right values while read vector non fill" in {
+        val q1 = BoundedQueue[Int](2) :+ 2
+        q1(0) shouldBe 2
+
+        val q2 = BoundedQueue[Int](2) :+ 2 :+ 3
+        q2(0) shouldBe 2
+        q2(1) shouldBe 3
+      }
+
+      "have right values while write vector non fill" in {
+        val q1 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3
+        q1(0) shouldBe 2
+        q1(1) shouldBe 3
+
+        val q2 = BoundedQueue[Int](3) :+ 1 :+ 2 :+ 3 :+ 3
+        q2(0) shouldBe 2
+        q2(1) shouldBe 3
+        q2(2) shouldBe 3
+      }
+
+      "after full rotate" in {
+        val q1 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4
+        q1(0) shouldBe 3
+        q1(1) shouldBe 4
+
+        val q2 = BoundedQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5
+        q2(0) shouldBe 4
+        q2(1) shouldBe 5
+      }
+    }
+
+    "filter" should {
+      "empty" in {
+        BoundedQueue[Int](2).filter(_ => true).toList shouldBe Nil
+      }
+
+      "remove somethig" in {
+
+        BoundedQueue[Int](3).pushValues(1, 2, 3).filter(_ != 1).toList shouldBe List(2, 3)
+      }
+
+      "dont remove anything" in {
+
+        BoundedQueue[Int](3).pushValues(1, 2, 3).filter(_ != 4).toList shouldBe List(1, 2, 3)
+      }
+    }
+
 
   }
 }

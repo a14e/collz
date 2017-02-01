@@ -108,6 +108,8 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
 
   override def size: Int = _size
 
+  override def newBuilder: mutable.Builder[(Int, T), mutable.Map[Int, T]] = IntMap.newBuilder[T]
+
 
   /**
     * фунуция для рекурсивного поиска элемента и определения содержится ли ключ внутри
@@ -141,8 +143,6 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     */
   override def contains(key: Int): Boolean = recurContains(underlying, key, key)
 
-  //  override def ma
-
   /**
     * фукция для обьединения двух листовых узлов в один
     *
@@ -151,7 +151,7 @@ class IntMap[T](private[collz] var underlying: Array[AnyRef] = new Array[AnyRef]
     * гулбины, где индексы различаются.
     *
     * для одинаковых ключей войдет в бесконечную (не хвостовую) рекурсию
-    * и упадет со StackOveflow
+    * и упадет со StackOverflow
     *
     * ключи должны иметь смещение для одного уровня
     *

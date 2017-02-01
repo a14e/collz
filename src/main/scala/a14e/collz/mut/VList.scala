@@ -118,7 +118,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
   override def +=:(elem: T): this.type = {
-    val listOfElems = iterator.toList
+    val listOfElems = toList
     clear()
     appendOne(elem)
     appendAll(listOfElems)
@@ -126,7 +126,7 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   }
 
   override def ++=:(elems: TraversableOnce[T]): this.type = {
-    val iter = iterator.toList
+    val iter = toList
     clear()
     appendAll(elems)
     appendAll(iter)

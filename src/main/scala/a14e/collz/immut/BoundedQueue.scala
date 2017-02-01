@@ -26,11 +26,12 @@ class BoundedQueue[T](readOffset: Int,
 
   //TODO протестировать
   override def filter(p: (T) => Boolean): this.type = {
-    var res = BoundedQueue[T](capacity)
-    for (x <- this)
-      if (p(x))
-        res = res :+ x
-    res.asInstanceOf[this.type]
+    foldLeft(BoundedQueue.empty[T](capacity)) {
+      (acc, current) =>
+        if (p(current))
+          acc :+ current
+        else acc
+    }.asInstanceOf[this.type]
   }
 
   //  override def newBuilder: mutable.Builder[T, Queue[T]] = BoundedQueue.newBuilder[T](capacity)
@@ -155,9 +156,7 @@ class BoundedQueue[T](readOffset: Int,
   }.asInstanceOf[this.type]
 
   override def :++(elems: TraversableOnce[T]): this.type = {
-    var res: this.type = this
-    elems.foreach(x => res = res :+ x)
-    res
+    elems.foldLeft(this)((acc, x) => acc :+ x).asInstanceOf[this.type]
   }
 
   override def apply(idx: Int): T = {
@@ -173,24 +172,33 @@ class BoundedQueue[T](readOffset: Int,
     }
   }
 
+  def compact: this.type = {
+    foldLeft(BoundedQueue.empty[T](capacity)) {
+      (acc, current) =>
+        acc :+ current
+    }.asInstanceOf[this.type]
+  }
+
   override def stringPrefix: String = "BoundedQueue"
 }
 
 object BoundedQueue {
 
-  def fill[T](maxSize: Int)(el: => T): BoundedQueue[T] = {
-    BoundedQueue[T](maxSize) :++ List.fill(maxSize)(el)
+  def fill[T](capacity: Int)(el: => T): BoundedQueue[T] = {
+    BoundedQueue[T](capacity) :++ List.fill(capacity)(el)
   }
 
   //TODO протестировать
   def of[T](xs: T*): BoundedQueue[T] = (newBuilder[T](xs.size) ++= xs).result()
 
 
-  def apply[T](maxSize: Int): BoundedQueue[T] = {
-    if (maxSize <= 0)
-      throw new IllegalArgumentException(s"$maxSize: BoundedQueue should have maxSize > 0")
-    new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], maxSize)
+  def apply[T](capacity: Int): BoundedQueue[T] = {
+    if (capacity <= 0)
+      throw new IllegalArgumentException(s"$capacity: BoundedQueue should have maxSize > 0")
+    new BoundedQueue[T](0, Vector.empty[T], Vector.empty[T], capacity)
   }
+
+  def empty[T](capacity: Int): BoundedQueue[T] = apply[T](capacity)
 
   //TODO протестировать
   def newBuilder[A](capacity: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {

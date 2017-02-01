@@ -1,8 +1,10 @@
 package a14e.collz.mut
+
 /*
 * This source code is licensed under the MIT license found in the
 * LICENSE.txt file in the root directory of this source tree
 */
+
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.mutable
@@ -17,6 +19,7 @@ class IntMapSpec extends WordSpec with Matchers {
         IntMap[Int]().isEmpty shouldBe true
         IntMap[Int](1 -> 1).isEmpty shouldBe false
         IntMap[Int](1 -> 2, 2 -> 2).isEmpty shouldBe false
+
 
       }
 
@@ -452,7 +455,7 @@ class IntMapSpec extends WordSpec with Matchers {
 
     "map" in {
       import IntMap._
-      val res = IntMap[Int](1 -> 1, 2 -> 2).map{case (k, v) => (k + 1) -> (v + 2)}
+      val res = IntMap[Int](1 -> 1, 2 -> 2).map { case (k, v) => (k + 1) -> (v + 2) }
       res shouldBe IntMap[Int](2 -> 3, 3 -> 4)
     }
 

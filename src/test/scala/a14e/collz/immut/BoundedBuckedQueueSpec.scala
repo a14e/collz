@@ -116,6 +116,46 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
       }
     }
 
+    "clear of bucket" should {
+      "withEmptyBucket" in {
+        BoundedBucketQueue[Int](2).withEmptyBucket.queue.mkString("") shouldBe ""
+
+        BoundedBucketQueue[Int](2).pushValues(2).withEmptyBucket.queue.mkString("") shouldBe "2"
+
+        BoundedBucketQueue[Int](2).pushValues(2, 3).withEmptyBucket.queue.mkString("") shouldBe "23"
+
+
+        BoundedBucketQueue[Int](2).pushValues(1, 2, 3).withEmptyBucket.queue.mkString("") shouldBe "23"
+
+
+        BoundedBucketQueue[Int](2).withEmptyBucket.bucket shouldBe Nil
+
+        BoundedBucketQueue[Int](2).pushValues(2).withEmptyBucket.bucket shouldBe Nil
+
+        BoundedBucketQueue[Int](2).pushValues(2, 3).withEmptyBucket.bucket shouldBe Nil
+
+
+        BoundedBucketQueue[Int](2).pushValues(1, 2, 3).withEmptyBucket.bucket shouldBe Nil
+      }
+
+      "clearBucket" in {
+        val (q1, bucket1) = BoundedBucketQueue[Int](2).clearBucket
+        q1.queue.mkString("") shouldBe ""
+        q1.bucket shouldBe Nil
+        bucket1  shouldBe Nil
+
+        val (q2, bucket2) = BoundedBucketQueue[Int](2).pushValues(1, 2).clearBucket
+        q2.queue.mkString("") shouldBe "12"
+        q2.bucket shouldBe Nil
+        bucket2  shouldBe Nil
+
+        val (q3, bucket3) = BoundedBucketQueue[Int](2).pushValues(1, 2 , 3).clearBucket
+        q3.queue.mkString("") shouldBe "23"
+        q3.bucket shouldBe Nil
+        bucket3  shouldBe List(1)
+      }
+    }
+
     "pull" should {
       "have right values while read vector non fill" in {
         val (q1, x1) = BoundedBucketQueue[Int](2).pushValues(2).pull()
@@ -148,6 +188,44 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
         x1 shouldBe 3
 
         val (q2, x2) = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 4, 5).pull()
+        q2.queue.mkString("") shouldBe "45"
+        q1.bucket.mkString("") shouldBe "21"
+        x2 shouldBe 3
+      }
+    }
+
+    "pullOption" should {
+      "have right values while read vector non fill" in {
+        val (q1, Some(x1)) = BoundedBucketQueue[Int](2).pushValues(2).pullOption()
+        q1.queue.mkString("") shouldBe ""
+        q1.bucket.mkString("") shouldBe ""
+        x1 shouldBe 2
+
+        val (q2, Some(x2)) = BoundedBucketQueue[Int](2).pushValues(2, 3).pullOption()
+        q2.queue.mkString("") shouldBe "3"
+        q2.bucket.mkString("") shouldBe ""
+        x2 shouldBe 2
+      }
+
+      "have right values while write vector non fill" in {
+        val (q1, Some(x1)) = BoundedBucketQueue[Int](2).pushValues(1, 2, 3).pullOption()
+        q1.queue.mkString("") shouldBe "3"
+        q1.bucket.mkString("") shouldBe "1"
+        x1 shouldBe 2
+
+        val (q2, Some(x2)) = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 3).pullOption()
+        q2.queue.mkString("") shouldBe "33"
+        q1.bucket.mkString("") shouldBe "1"
+        x2 shouldBe 2
+      }
+
+      "after full rotate" in {
+        val (q1, Some(x1)) = BoundedBucketQueue[Int](2).pushValues(1, 2, 3, 4).pullOption()
+        q1.queue.mkString("") shouldBe "4"
+        q1.bucket.mkString("") shouldBe "21"
+        x1 shouldBe 3
+
+        val (q2, Some(x2)) = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 4, 5).pullOption()
         q2.queue.mkString("") shouldBe "45"
         q1.bucket.mkString("") shouldBe "21"
         x2 shouldBe 3
@@ -340,34 +418,35 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
       "apply" should {
         "have right values while read vector non fill" in {
           val q1 = BoundedBucketQueue[Int](2) :+ 2
-          q1(0) shouldBe 2
+          q1.queue(0) shouldBe 2
 
           val q2 = BoundedBucketQueue[Int](2) :+ 2 :+ 3
-          q2(0) shouldBe 2
-          q2(1) shouldBe 3
+          q2.queue(0) shouldBe 2
+          q2.queue(1) shouldBe 3
         }
 
         "have right values while write vector non fill" in {
           val q1 = BoundedBucketQueue[Int](2) :+ 1 :+ 2 :+ 3
-          q1(0) shouldBe 2
-          q1(1) shouldBe 3
+          q1.queue(0) shouldBe 2
+          q1.queue(1) shouldBe 3
 
           val q2 = BoundedBucketQueue[Int](3) :+ 1 :+ 2 :+ 3 :+ 3
-          q2(0) shouldBe 2
-          q2(1) shouldBe 3
-          q2(2) shouldBe 3
+          q2.queue(0) shouldBe 2
+          q2.queue(1) shouldBe 3
+          q2.queue(2) shouldBe 3
         }
 
         "after full rotate" in {
           val q1 = BoundedBucketQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4
-          q1(0) shouldBe 3
-          q1(1) shouldBe 4
+          q1.queue(0) shouldBe 3
+          q1.queue(1) shouldBe 4
 
           val q2 = BoundedBucketQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5
-          q2(0) shouldBe 4
-          q2(1) shouldBe 5
+          q2.queue(0) shouldBe 4
+          q2.queue(1) shouldBe 5
         }
       }
+
 
     }
 

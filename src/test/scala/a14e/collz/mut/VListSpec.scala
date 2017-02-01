@@ -533,6 +533,7 @@ class VListSpec extends WordSpec with Matchers {
       "multiple elements" in {
 
         VList(1, 2, 3).toString() shouldBe "VList(1, 2, 3)"
+
       }
     }
   }
