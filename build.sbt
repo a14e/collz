@@ -2,7 +2,7 @@ name := "collz"
 
 organization := "com.github.a14e"
 
-version := "0.2"
+version := "0.2.1"
 
 scalaVersion := "2.12.1"
 
