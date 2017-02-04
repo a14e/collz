@@ -31,7 +31,7 @@ TODO english docs in few months
 Библиотека собрана для версий 2.11.8 и 2.12.1
 Для подключения библиотки добавьте себе в .sbt файл строку
 ```scala
-libraryDependencies += "com.github.a14e" %% "collz" % "0.2.1"
+libraryDependencies += "com.github.a14e" %% "collz" % "0.2.2"
 ```
 
 
