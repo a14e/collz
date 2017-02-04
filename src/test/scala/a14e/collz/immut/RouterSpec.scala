@@ -115,6 +115,22 @@ class RouterSpec extends WordSpec with Matchers {
       }
     }
 
+    "can build from test" in {
+      import Router.canBuildFrom
+      Router(1 to 5: _*).map(_ + 1).toList shouldBe (2 to 6).toList
+    }
+
+    "builder" in {
+      val builder = Router.newBuilder[Int]
+      builder += 1
+      builder += 2
+      builder ++= List(3, 4)
+      builder.result().toList shouldBe List(1, 2, 3, 4)
+
+      builder.clear()
+      builder.result().toList shouldBe Nil
+    }
+
     "remove" when {
       "remove if exists" in {
 

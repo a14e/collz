@@ -12,9 +12,6 @@ import scala.reflect.ClassTag
 object VList extends SeqFactory[VList] {
   override def apply[T](xs: T*): VList[T] = new VList[T]() ++= xs
 
-
-  def range(start: Int, end: Int) = new VList(start to end)
-
   override def newBuilder[A]: mutable.Builder[A, VList[A]] = new VList[A]()
 
   implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, VList[A]] = ReusableCBF.asInstanceOf[GenericCanBuildFrom[A]]
@@ -40,11 +37,6 @@ class VList[T] protected(protected var underlying: Array[Array[Any]],
   def this() = {
     this(null, 0, 0, 0)
     clear() // так как в clear() сделано будет все, что надо
-  }
-
-  def this(xs: TraversableOnce[T]) = {
-    this()
-    this.appendAll(xs)
   }
 
 

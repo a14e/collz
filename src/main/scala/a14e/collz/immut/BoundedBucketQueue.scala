@@ -5,6 +5,7 @@
 package a14e.collz.immut
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 object BoundedBucketQueue {
@@ -35,7 +36,6 @@ object BoundedBucketQueue {
 }
 
 /**
-  * TODO протестировать
   *
   * контейнер для очереди фиксированного размера и корзины в вие списка
   *
@@ -57,7 +57,7 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
     new BoundedBucketQueue[T](newQueue, newBucket).asInstanceOf[this.type]
   }
 
-  override def pushValues(values: T*): this.type = pushAll(values)
+  override def pushValues(values: T*): this.type = this :++ values
 
   override def pushAll(values: TraversableOnce[T]): this.type = {
     var newBucket = bucket
@@ -93,9 +93,9 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
   }
 
   override def pullAll(count: Int): (this.type, Seq[T]) = {
-    val (newQueue, seq) = queue.pullAll(count)
-    val resQueue = new BoundedBucketQueue[T](newQueue, bucket).asInstanceOf[this.type]
-    (resQueue, seq)
+    val buff = new ListBuffer[T]()
+    val newQueue = pullAllToBuff(count, buff).asInstanceOf[this.type]
+    (newQueue, buff.result())
   }
 
   def clearBucket: (this.type, List[T]) = {
@@ -127,7 +127,6 @@ class BoundedBucketQueue[T](val queue: BoundedQueue[T], val bucket: List[T]) ext
 
   override def :+(elem: T): this.type = push(elem)
 
-  //TODO протестировать
   override def :++(elems: TraversableOnce[T]): this.type = pushAll(elems)
 
   override def isEmpty: Boolean = queue.isEmpty

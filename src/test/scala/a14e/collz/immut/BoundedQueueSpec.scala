@@ -83,6 +83,27 @@ class BoundedQueueSpec extends WordSpec with Matchers {
       }
     }
 
+    "fill" in {
+      BoundedQueue.fill(4)(1).toList shouldBe List(1, 1, 1, 1)
+      BoundedQueue.fill(4)(4).capacity shouldBe 4
+    }
+
+    "of" in {
+      BoundedQueue.of(1, 2, 3).toList shouldBe List(1, 2, 3)
+    }
+
+    "builder" in {
+      val builder = BoundedQueue.newBuilder[Int](3)
+      builder += 1 += 4 += 7 += 9
+      builder.result().toList shouldBe List(4, 7, 9)
+      builder.clear()
+      builder.result().toList shouldBe Nil
+    }
+
+    "compact" in {
+      (BoundedQueue.of(1, 2, 3) :+ 5 :+ 6).compact shouldBe BoundedQueue.of(3, 5, 6)
+    }
+
     "pull" should {
       "have right values while read vector non fill" in {
         val (q1, x1) = BoundedQueue[Int](2).pushValues(2).pull()
@@ -110,6 +131,39 @@ class BoundedQueueSpec extends WordSpec with Matchers {
         x1 shouldBe 3
 
         val (q2, x2) = BoundedQueue[Int](3).pushValues(1, 2, 3, 4, 5).pull()
+        q2.mkString("") shouldBe "45"
+        x2 shouldBe 3
+      }
+    }
+
+
+    "pull option" should {
+      "have right values while read vector non fill" in {
+        val (q1, Some(x1)) = BoundedQueue[Int](2).pushValues(2).pullOption()
+        q1.mkString("") shouldBe ""
+        x1 shouldBe 2
+
+        val (q2, Some(x2)) = BoundedQueue[Int](2).pushValues(2, 3).pullOption()
+        q2.mkString("") shouldBe "3"
+        x2 shouldBe 2
+      }
+
+      "have right values while write vector non fill" in {
+        val (q1, Some(x1)) = BoundedQueue[Int](2).pushValues(1, 2, 3).pullOption()
+        q1.mkString("") shouldBe "3"
+        x1 shouldBe 2
+
+        val (q2, Some(x2)) = BoundedQueue[Int](3).pushValues(1, 2, 3, 3).pullOption()
+        q2.mkString("") shouldBe "33"
+        x2 shouldBe 2
+      }
+
+      "after full rotate" in {
+        val (q1, Some(x1)) = BoundedQueue[Int](2).pushValues(1, 2, 3, 4).pullOption()
+        q1.mkString("") shouldBe "4"
+        x1 shouldBe 3
+
+        val (q2, Some(x2)) = BoundedQueue[Int](3).pushValues(1, 2, 3, 4, 5).pullOption()
         q2.mkString("") shouldBe "45"
         x2 shouldBe 3
       }

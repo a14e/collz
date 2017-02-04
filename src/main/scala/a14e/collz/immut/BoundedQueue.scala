@@ -51,7 +51,7 @@ class BoundedQueue[T](readOffset: Int,
     }
   }
 
-  //TODO протестировать
+  //TODO test it
   override def pullOption(): (this.type, Option[T]) = {
     if (isEmpty) (this, None)
     else {
@@ -172,6 +172,7 @@ class BoundedQueue[T](readOffset: Int,
     }
   }
 
+  // TODO test it
   def compact: this.type = {
     foldLeft(BoundedQueue.empty[T](capacity)) {
       (acc, current) =>
@@ -203,7 +204,7 @@ object BoundedQueue {
   //TODO протестировать
   def newBuilder[A](capacity: Int): mutable.Builder[A, BoundedQueue[A]] = new mutable.Builder[A, BoundedQueue[A]] {
 
-    private var queue: BoundedQueue[A] = BoundedQueue[A](capacity)
+    private var queue: BoundedQueue[A] = empty[A](capacity)
 
     override def +=(elem: A): this.type = {
       queue = queue :+ elem

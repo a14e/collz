@@ -45,7 +45,7 @@ import scala.reflect.ClassTag
   *
   * Created by Borisenko Andrew on 28.01.2017.
   */
-class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T])
+class Router[T: Ordering] (val underlying: collection.immutable.TreeSet[T])
   extends Iterable[T] with Traversable[T] {
 
 
@@ -61,8 +61,6 @@ class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T
     new Router(newSet)
   }
 
-  def contains(x: T): Boolean = underlying.contains(x)
-
   def ++(xs: TraversableOnce[T]): Router[T] = {
     val newSet = underlying ++ xs
     new Router(newSet)
@@ -74,17 +72,11 @@ class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T
   }
 
 
-
-  // на основе хешей из стандартной библиотеки java
-  private def betterHash(hcode: Int): Int = {
-        hcode ^ (hcode >>> 16)
-  }
-
   def route(key: Any): T = {
     if (isEmpty)
       throw new UnsupportedOperationException("route on empty router")
 
-    val h = betterHash(key.hashCode())
+    val h = Router.improveHash(key.hashCode())
     val i = h.abs % underlying.size
     table(i)
   }
@@ -96,13 +88,15 @@ class Router[T: Ordering] private(val underlying: collection.immutable.TreeSet[T
 }
 
 object Router {
+  def improveHash(hcode: Int): Int = hcode ^ (hcode >>> 16)
+
 
   def empty[T: Ordering] = new Router[T](new collection.immutable.TreeSet[T]())
 
   def apply[T: Ordering](xs: T*): Router[T] = empty[T] ++ xs
 
   //TODO протестировать
-  implicit def canBuildFrom[A: ClassTag : Ordering]: CanBuildFrom[TraversableOnce[_], A, Router[A]] =
+  implicit def canBuildFrom[A : Ordering]: CanBuildFrom[TraversableOnce[_], A, Router[A]] =
     new CanBuildFrom[TraversableOnce[_], A, Router[A]] {
 
       override def apply(from: TraversableOnce[_]): mutable.Builder[A, Router[A]] = newBuilder[A]
@@ -111,9 +105,7 @@ object Router {
     }
 
   //TODO протестировать
-
-
-  def newBuilder[A: ClassTag : Ordering]: mutable.Builder[A, Router[A]] = new mutable.Builder[A, Router[A]] {
+  def newBuilder[A : Ordering]: mutable.Builder[A, Router[A]] = new mutable.Builder[A, Router[A]] {
     private var internal = empty[A]
 
     override def +=(elem: A): this.type = {

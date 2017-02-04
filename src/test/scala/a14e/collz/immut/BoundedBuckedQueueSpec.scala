@@ -2,7 +2,7 @@ package a14e.collz.immut
 
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 /**
   * Created by m0hct on 31.01.2017.
@@ -21,6 +21,7 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
 
         BoundedBucketQueue[Int](1).isEmpty shouldBe true
       }
+
 
       "while read vector non fill" in {
         BoundedBucketQueue[Int](2).queue.size shouldBe 0
@@ -49,6 +50,22 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
         (BoundedBucketQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5).queue.size shouldBe 2
         (BoundedBucketQueue[Int](2) :+ 1 :+ 2 :+ 3 :+ 4 :+ 5).bucket.length shouldBe 3
       }
+    }
+
+    "empty" in {
+      BoundedBucketQueue.empty[Int](2).queue.capacity shouldBe 2
+      BoundedBucketQueue.empty[Int](2).queue.isEmpty shouldBe true
+    }
+
+    "builder" in {
+      val builder = BoundedBucketQueue.newBuilder[Int](4)
+      builder += 1 += 2 += 3 += 4 += 5
+      builder.result().queue.toList shouldBe List(2, 3, 4, 5)
+      builder.result().bucket shouldBe List(1)
+
+      builder.clear()
+      builder.result().queue.toList shouldBe Nil
+      builder.result().bucket shouldBe Nil
     }
 
     "push" should {
@@ -116,6 +133,7 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
       }
     }
 
+
     "clear of bucket" should {
       "withEmptyBucket" in {
         BoundedBucketQueue[Int](2).withEmptyBucket.queue.mkString("") shouldBe ""
@@ -142,17 +160,17 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
         val (q1, bucket1) = BoundedBucketQueue[Int](2).clearBucket
         q1.queue.mkString("") shouldBe ""
         q1.bucket shouldBe Nil
-        bucket1  shouldBe Nil
+        bucket1 shouldBe Nil
 
         val (q2, bucket2) = BoundedBucketQueue[Int](2).pushValues(1, 2).clearBucket
         q2.queue.mkString("") shouldBe "12"
         q2.bucket shouldBe Nil
-        bucket2  shouldBe Nil
+        bucket2 shouldBe Nil
 
-        val (q3, bucket3) = BoundedBucketQueue[Int](2).pushValues(1, 2 , 3).clearBucket
+        val (q3, bucket3) = BoundedBucketQueue[Int](2).pushValues(1, 2, 3).clearBucket
         q3.queue.mkString("") shouldBe "23"
         q3.bucket shouldBe Nil
-        bucket3  shouldBe List(1)
+        bucket3 shouldBe List(1)
       }
     }
 
@@ -191,6 +209,90 @@ class BoundedBuckedQueueSpec extends WordSpec with Matchers {
         q2.queue.mkString("") shouldBe "45"
         q1.bucket.mkString("") shouldBe "21"
         x2 shouldBe 3
+      }
+    }
+
+
+    "pull to buffer" should {
+      "have right values while read vector non fill" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(2).pullToBuff(buf)
+        q1.queue.mkString("") shouldBe ""
+        q1.bucket.mkString("") shouldBe ""
+        buf.last shouldBe 2
+
+        val q2 = BoundedBucketQueue[Int](2).pushValues(2, 3).pullToBuff(buf)
+        q2.queue.mkString("") shouldBe "3"
+        q2.bucket.mkString("") shouldBe ""
+        buf.last shouldBe 2
+      }
+
+      "have right values while write vector non fill" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(1, 2, 3).pullToBuff(buf)
+        q1.queue.mkString("") shouldBe "3"
+        q1.bucket.mkString("") shouldBe "1"
+        buf.last shouldBe 2
+
+        val q2 = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 3).pullToBuff(buf)
+        q2.queue.mkString("") shouldBe "33"
+        q1.bucket.mkString("") shouldBe "1"
+        buf.last shouldBe 2
+      }
+
+      "after full rotate" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(1, 2, 3, 4).pullToBuff(buf)
+        q1.queue.mkString("") shouldBe "4"
+        q1.bucket.mkString("") shouldBe "21"
+        buf.last shouldBe 3
+
+        val q2 = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 4, 5).pullToBuff(buf)
+        q2.queue.mkString("") shouldBe "45"
+        q1.bucket.mkString("") shouldBe "21"
+        buf.last shouldBe 3
+      }
+    }
+
+
+    "pull to buffer while" should {
+      "have right values while read vector non fill" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(2).pullWhileToBuff(_ == 2, buf)
+        q1.queue.mkString("") shouldBe ""
+        q1.bucket.mkString("") shouldBe ""
+        buf.last shouldBe 2
+
+        val q2 = BoundedBucketQueue[Int](2).pushValues(2, 3).pullWhileToBuff(_ != 4, buf)
+        q2.queue.mkString("") shouldBe ""
+        q2.bucket.mkString("") shouldBe ""
+        buf.last shouldBe 3
+      }
+
+      "have right values while write vector non fill" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(1, 2, 3).pullWhileToBuff(_ == 2, buf)
+        q1.queue.mkString("") shouldBe "3"
+        q1.bucket.mkString("") shouldBe "1"
+        buf.last shouldBe 2
+
+        val q2 = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 3).pullWhileToBuff(_ < 3, buf)
+        q2.queue.mkString("") shouldBe "33"
+        q1.bucket.mkString("") shouldBe "1"
+        buf.last shouldBe 2
+      }
+
+      "after full rotate" in {
+        val buf = new ArrayBuffer[Int]()
+        val q1 = BoundedBucketQueue[Int](2).pushValues(1, 2, 3, 4).pullWhileToBuff(_ < 5, buf)
+        q1.queue.mkString("") shouldBe ""
+        q1.bucket.mkString("") shouldBe "21"
+        buf.last shouldBe 4
+
+        val q2 = BoundedBucketQueue[Int](3).pushValues(1, 2, 3, 4, 5).pullWhileToBuff(_ == 3, buf)
+        q2.queue.mkString("") shouldBe "45"
+        q1.bucket.mkString("") shouldBe "21"
+        buf.last shouldBe 3
       }
     }
 
