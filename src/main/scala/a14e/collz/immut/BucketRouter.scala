@@ -16,9 +16,6 @@ object BucketRouter {
   }
 }
 
-/**
-  * Created by Borisenko Andrew on 03.02.2017.
-  */
 case class BucketRouter[T: Ordering](buckets: Vector[Bucket[T]]) {
 
   def bucketNumber: Int = buckets.length
