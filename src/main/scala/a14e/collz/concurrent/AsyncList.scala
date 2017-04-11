@@ -44,9 +44,17 @@ trait AsyncList[+T] extends ResultHandler[Seq[T]] {
   def filterAsync(test: T => Future[Boolean]): AsyncList[T] =
     batchMapAsync[T] { (seq, ex) =>
       implicit val context = ex
-      Future.traverse(seq) { x: T =>
-        test(x).map(testRes => x -> testRes)
-      }.map(_.collect { case (x, true) => x })
+      seq.foldLeft(Future.successful(new ListBuffer[T]())) {
+        (futureBuf, current) =>
+          val testFuture = test(current)
+          for {
+            buffer <- futureBuf
+            testRes <- testFuture
+          } yield {
+            if (testRes) buffer += current
+            buffer
+          }
+      }.map(_.result())
     }
 
   def flatMapAsync[B](f: T => Future[GenTraversableOnce[B]]): AsyncList[B] =
@@ -302,11 +310,11 @@ object AsyncList {
       def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
         val newHeadBatch = Future.successful(seq)
 
-        def tailBuilder(ctx: ExecutionContext): Future[AsyncList[T]] = {
+        def newTailBuilder(ctx: ExecutionContext): Future[AsyncList[T]] = {
           batchedImpl(batchSize, tail, tailBuilder, new ArrayBuffer[T](batchSize), ctx)
         }
 
-        Future.successful((newHeadBatch, tailBuilder))
+        Future.successful((newHeadBatch, newTailBuilder))
       }
 
       Future.successful(new AsyncListImpl[T](newComputation))
@@ -331,7 +339,7 @@ object AsyncList {
               }
           }
         }
-      case stream if batchBuffer.nonEmpty =>
+      case stream =>
         val leftSize = batchSize - batchBuffer.size
         val (headBatch, tail) = stream.splitAt(leftSize)
         batchBuffer ++= headBatch
@@ -504,11 +512,11 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
         case head #:: tail =>
           val nextCol = Future.successful(head :: Nil)
 
-          def tailBuilder(c: ExecutionContext): Future[AsyncList[T]] =
+          def newTailBuilder(c: ExecutionContext): Future[AsyncList[T]] =
             recursiveBuilder(c, tail: Stream[T], tailBuilder)
 
           def nextComputation(c: ExecutionContext): ComputationResult[T] = {
-            Future.successful((nextCol, tailBuilder))
+            Future.successful((nextCol, newTailBuilder))
           }
 
           Future.successful(new AsyncListImpl[T](nextComputation))
@@ -545,7 +553,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
       }
     }
 
-    if(batchSize <= 0)
+    if (batchSize <= 0)
       throw new RuntimeException(s"Unsupported batch size $batchSize")
 
     if (batchSize == 1) serially
@@ -569,7 +577,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
     new AsyncListImpl[B](newComputation)
   }
 
-  override def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]) = {
+  override def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]): AsyncListImpl[B] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[B] = {
       implicit val context = ctx
       computation(ctx).map {
@@ -599,7 +607,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
         currentBatch <- batchFuture
         (foldRes, continue) = calc(init, currentBatch)
         result <- {
-          if (continue) Future.successful(foldRes)
+          if (!continue) Future.successful(foldRes)
           else {
             for {
               tail <- tailBuilder(context)
@@ -620,7 +628,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
         currentBatch <- batchFuture
         (foldRes, continue) <- calc(init, currentBatch, context)
         result <- {
-          if (continue) Future.successful(foldRes)
+          if (!continue) Future.successful(foldRes)
           else {
             for {
               tail <- tailBuilder(context)
