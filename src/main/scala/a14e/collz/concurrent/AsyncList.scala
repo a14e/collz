@@ -2,9 +2,9 @@
 * This source code is licensed under the MIT license found in the
 * LICENSE.txt file in the root directory of this source tree
 */
-package a14e.collz.concurent
+package a14e.collz.concurrent
 
-import a14e.collz.concurent.AsyncList.{Computation, ComputationResult, TailBuilder}
+import a14e.collz.concurrent.AsyncList.{Computation, ComputationResult, TailBuilder}
 
 import scala.collection.{GenTraversableOnce, TraversableOnce}
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -179,16 +179,17 @@ trait AsyncList[+T] extends ResultHandler[Seq[T]] {
 
   def drop(count: Int): AsyncList[T]
 
-  protected[concurent] def computation[B >: T](context: ExecutionContext): ComputationResult[B]
+  def batchMap[B](f: Seq[T] => Seq[B]): AsyncList[B]
 
-  protected[concurent] def batchMap[B](f: Seq[T] => Seq[B]): AsyncList[B]
+  def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]): AsyncList[B]
 
-  protected[concurent] def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]): AsyncList[B]
+  protected[concurrent] def computation[B >: T](context: ExecutionContext): ComputationResult[B]
 
-  protected[concurent] def foldLeftImpl[B](init: B)(calc: (B, Seq[T]) => (B, Boolean)): ResultHandler[B]
 
-  protected[concurent] def foldLeftAsyncImpl[B](init: B)
-                                               (calc: (B, Seq[T], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B]
+  protected[concurrent] def foldLeftImpl[B](init: B)(calc: (B, Seq[T]) => (B, Boolean)): ResultHandler[B]
+
+  protected[concurrent] def foldLeftAsyncImpl[B](init: B)
+                                                (calc: (B, Seq[T], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B]
 }
 
 object AsyncList {
@@ -239,6 +240,7 @@ object AsyncList {
   def spanAsync[T](seq: Seq[T],
                    cond: T => Future[Boolean])
                   (implicit ctx: ExecutionContext): Future[(Seq[T], Seq[T])] = {
+
     def recSpanAsync(buffer: ListBuffer[T],
                      prev: Stream[T],
                      cond: T => Future[Boolean])
@@ -290,11 +292,11 @@ object AsyncList {
   }
 
 
-  protected[concurent] def batchedImpl[T](batchSize: Int,
-                                          leftSeq: Seq[T],
-                                          tailBuilder: TailBuilder[T],
-                                          batchBuffer: ArrayBuffer[T],
-                                          context: ExecutionContext): Future[AsyncList[T]] = {
+  protected[concurrent] def batchedImpl[T](batchSize: Int,
+                                           leftSeq: Seq[T],
+                                           tailBuilder: TailBuilder[T],
+                                           batchBuffer: ArrayBuffer[T],
+                                           context: ExecutionContext): Future[AsyncList[T]] = {
 
     def resultWithSeq(seq: Seq[T], tail: Seq[T]): Future[AsyncList[T]] = {
       def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
@@ -341,8 +343,7 @@ object AsyncList {
 
 class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
 
-
-  def takeWhile(cond: T => Boolean): AsyncList[T] = {
+  override def takeWhile(cond: T => Boolean): AsyncList[T] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
       implicit val context = ctx
       computation(ctx).flatMap {
@@ -370,8 +371,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
     new AsyncListImpl[T](newComputation)
   }
 
-
-  def dropWhile(cond: T => Boolean): AsyncList[T] = {
+  override def dropWhile(cond: T => Boolean): AsyncList[T] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
       implicit val context = ctx
       computation(ctx).flatMap {
@@ -397,7 +397,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
   override def take(count: Int): AsyncList[T] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
       implicit val context = ctx
-      computation(ctx).flatMap {
+      computation[T](ctx).flatMap {
         case (headBatchFuture, tailBuilder) =>
           for {
             headBatch <- headBatchFuture
@@ -407,7 +407,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
               if (takenLen == count) {
                 (taken :: ANil).computation[T](ctx)
               } else {
-                tailBuilder(ctx).flatMap(_.take(count - takenLen).computation[T](ctx))
+                tailBuilder(ctx).flatMap(x => (taken :: x.take(count - takenLen)).computation[T](ctx))
               }
             }
           } yield res
@@ -447,7 +447,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
   override def takeWhileAsync(cond: T => Future[Boolean]): AsyncList[T] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[T] = {
       implicit val context = ctx
-      computation(ctx).flatMap {
+      computation[T](ctx).flatMap {
         case (headBatchFuture, tailBuilder) =>
           for {
             headBatch <- headBatchFuture
@@ -494,7 +494,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
   }
 
 
-  def serially: AsyncList[T] = {
+  override def serially: AsyncList[T] = {
 
     def recursiveBuilder(ctx: ExecutionContext,
                          currentStream: Stream[T],
@@ -531,8 +531,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
   }
 
 
-  def batched(batchSize: Int): AsyncList[T] = {
-    val fixedBatchSize = math.max(1, batchSize)
+  override def batched(batchSize: Int): AsyncList[T] = {
 
     def newComputation[B >: T](ctx: ExecutionContext): ComputationResult[B] = {
       implicit val context = ctx
@@ -540,21 +539,20 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
         case (headBatchFuture, tailBuilder) =>
           for {
             headBatch <- headBatchFuture
-            alist <- AsyncList.batchedImpl(fixedBatchSize, headBatch, tailBuilder, new ArrayBuffer[T](fixedBatchSize), ctx)
+            alist <- AsyncList.batchedImpl(batchSize, headBatch, tailBuilder, new ArrayBuffer[T](batchSize), ctx)
             computed <- alist.computation(ctx)
           } yield computed
       }
     }
 
-    if (fixedBatchSize == 1) serially
+    if(batchSize <= 0)
+      throw new RuntimeException(s"Unsupported batch size $batchSize")
+
+    if (batchSize == 1) serially
     else new AsyncListImpl[T](newComputation)
   }
 
-  protected[concurent] def computation[B >: T](context: ExecutionContext): ComputationResult[B] = {
-    _computation(context)
-  }
-
-  protected[concurent] override def batchMap[B](f: (Seq[T]) => Seq[B]): AsyncList[B] = {
+  override def batchMap[B](f: (Seq[T]) => Seq[B]): AsyncList[B] = {
     def newComputation(ctx: ExecutionContext): ComputationResult[B] = {
       implicit val context = ctx
       computation(ctx).map {
@@ -571,7 +569,7 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
     new AsyncListImpl[B](newComputation)
   }
 
-  protected[concurent] override def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]) = {
+  override def batchMapAsync[B](f: (Seq[T], ExecutionContext) => Future[Seq[B]]) = {
     def newComputation(ctx: ExecutionContext): ComputationResult[B] = {
       implicit val context = ctx
       computation(ctx).map {
@@ -588,8 +586,12 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
     new AsyncListImpl[B](newComputation)
   }
 
-  protected[concurent] override def foldLeftImpl[B](init: B)
-                                                   (calc: (B, Seq[T]) => (B, Boolean)): ResultHandler[B] = {
+  protected[concurrent] override def computation[B >: T](context: ExecutionContext): ComputationResult[B] = {
+    _computation(context)
+  }
+
+  protected[concurrent] override def foldLeftImpl[B](init: B)
+                                                    (calc: (B, Seq[T]) => (B, Boolean)): ResultHandler[B] = {
 
     FunctionResultHandler[B] { implicit context =>
       for {
@@ -610,8 +612,8 @@ class AsyncListImpl[+T](_computation: Computation[T]) extends AsyncList[T] {
   }
 
 
-  protected[concurent] override def foldLeftAsyncImpl[B](init: B)
-                                                        (calc: (B, Seq[T], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B] = {
+  protected[concurrent] override def foldLeftAsyncImpl[B](init: B)
+                                                         (calc: (B, Seq[T], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B] = {
     FunctionResultHandler[B] { implicit context =>
       for {
         (batchFuture, tailBuilder) <- computation(context)
@@ -652,23 +654,21 @@ object ANil extends AsyncList[Nothing] {
 
   override def batched(batchSize: Int): AsyncList[Nothing] = ANil
 
+  override def batchMap[B](f: (Seq[Nothing]) => Seq[B]): AsyncList[B] = ANil
 
-  protected[concurent] override def batchMap[B](f: (Seq[Nothing]) => Seq[B]): AsyncList[B] =
-    ANil
+  override def batchMapAsync[B](f: (Seq[Nothing], ExecutionContext) => Future[Seq[B]]): AsyncList[B] = ANil
 
-  protected[concurent] override def batchMapAsync[B](f: (Seq[Nothing], ExecutionContext) => Future[Seq[B]]): AsyncList[B] =
-    ANil
-
-  protected[concurent] override def foldLeftImpl[B](init: B)(calc: (B, Seq[Nothing]) => (B, Boolean)): ResultHandler[B] = {
+  protected[concurrent] override def foldLeftImpl[B](init: B)
+                                                    (calc: (B, Seq[Nothing]) => (B, Boolean)): ResultHandler[B] = {
     new FunctionResultHandler[B](_ => Future.successful(init))
   }
 
-  protected[concurent] override def foldLeftAsyncImpl[B](init: B)
-                                                        (calc: (B, Seq[Nothing], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B] = {
+  protected[concurrent] override def foldLeftAsyncImpl[B](init: B)
+                                                         (calc: (B, Seq[Nothing], ExecutionContext) => Future[(B, Boolean)]): ResultHandler[B] = {
     new FunctionResultHandler[B](_ => Future.successful(init))
   }
 
-  protected[concurent] override def computation[B >: Nothing](context: ExecutionContext): ComputationResult[B] = {
+  protected[concurrent] override def computation[B >: Nothing](context: ExecutionContext): ComputationResult[B] = {
     Future.successful((Future.successful(Nil), { _: ExecutionContext => Future.successful(ANil) }))
   }
 }
