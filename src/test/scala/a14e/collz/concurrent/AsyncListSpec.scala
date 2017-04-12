@@ -165,6 +165,227 @@ class AsyncListSpec extends WordSpec with Matchers {
           .sync() shouldBe ((1 to 20) ++ (1 to 20)).collect { case x if x % 2 == 0 => x + 1 }
       }
     }
+
+    "map async" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil).mapAsync(x => Future.successful(x + 1)).run.sync() shouldBe Nil
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil).mapAsync(x => Future.successful(x + 1)).run.sync() shouldBe Seq(2, 3, 4)
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(1, 2) :: ANil).mapAsync(x => Future.successful(x + 1)).run.sync() shouldBe Seq(2, 3, 4, 2, 3)
+      }
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially.mapAsync(x => Future.successful(x + 1)).take(3).run.sync() shouldBe Seq(2, 3, 4)
+      }
+    }
+
+    "filterAsync" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .filterAsync(x => Future.successful(x % 2 == 0)).run.sync() shouldBe Nil
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .filterAsync(x => Future.successful(x % 2 == 0)).run.sync() shouldBe Seq(2)
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(1, 2) :: ANil)
+          .filterAsync(x => Future.successful(x % 2 == 0)).run.sync() shouldBe Seq(2, 2)
+      }
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially.filterAsync(x => Future.successful(x % 2 == 0)).take(4).run.sync() shouldBe Seq(2, 4, 6, 8)
+      }
+    }
+
+    "flatMapAsync" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .flatMapAsync(x => Future.successful(x :: 2 :: Nil)).run.sync() shouldBe Nil
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .flatMapAsync(x => Future.successful(x :: 2 :: Nil)).run.sync() shouldBe Seq(1, 2, 2, 2, 3, 2)
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(1, 2) :: ANil)
+          .flatMapAsync(x => Future.successful(x :: 2 :: Nil)).run.sync() shouldBe Seq(1, 2, 2, 2, 3, 2, 1, 2, 2, 2)
+      }
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially.flatMapAsync(x => Future.successful(x :: 2 :: 3 :: Nil)).take(4).run.sync() shouldBe Seq(1, 2, 3, 2)
+      }
+    }
+
+    "collectAsync" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .collectAsync { case x if x % 2 != 0 => Future.successful(x + 1) }.run.sync() shouldBe Nil
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .collectAsync { case x if x % 2 != 0 => Future.successful(x + 1) }.run.sync() shouldBe Seq(2, 4)
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(1, 2) :: ANil)
+          .collectAsync { case x if x % 2 != 0 => Future.successful(x + 1) }.run.sync() shouldBe Seq(2, 4, 2)
+      }
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially
+          .collectAsync { case x if x % 2 != 0 => Future.successful(x + 1) }.take(4).run.sync() shouldBe Seq(2, 4, 6, 8)
+      }
+    }
+
+    "find" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .find(_ == 4).run.sync() shouldBe None
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .find(_ == 3).run.sync() shouldBe Some(3)
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(4, 5) :: ANil)
+          .find(_ == 5).run.sync() shouldBe Some(5)
+      }
+
+      "work on infinity collections" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .find(_ == 8).run.sync() shouldBe Some(8)
+      }
+
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially
+          .find(_ == 8).run.sync() shouldBe Some(8)
+      }
+    }
+
+    "contains" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .contains(4).run.sync() shouldBe false
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .contains(3).run.sync() shouldBe true
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(4, 5) :: ANil)
+          .contains(5).run.sync() shouldBe true
+      }
+
+      "work on multiple batches if false" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(4, 5) :: ANil)
+          .contains(11).run.sync() shouldBe false
+      }
+
+      "work on infinity collections" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .contains(8).run.sync() shouldBe true
+      }
+
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially
+          .contains(8).run.sync() shouldBe true
+      }
+    }
+
+    "exists" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on empty seq" in new CommonWiring {
+        (Seq.empty[Int] :: ANil)
+          .exists(_ == 4).run.sync() shouldBe false
+      }
+
+      "work on single batch" in new CommonWiring {
+        (Seq(1, 2, 3) :: ANil)
+          .exists(_ == 3).run.sync() shouldBe true
+      }
+
+      "work on multiple batches" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(4, 5) :: ANil)
+          .exists(_ == 5).run.sync() shouldBe true
+      }
+
+      "work on multiple batches if false" in new CommonWiring {
+        (Seq(1, 2, 3) :: Seq(4, 5) :: ANil)
+          .exists(_ == 11).run.sync() shouldBe false
+      }
+
+      "work on infinity collections" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .exists(_ == 8).run.sync() shouldBe true
+      }
+
+      "work on infinity async lists" in new CommonWiring {
+        (Stream.from(1) :: ANil)
+          .serially
+          .exists(_ == 8).run.sync() shouldBe true
+      }
+    }
+
+    "is Empty" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on ANIL" in new CommonWiring {
+        ANil.isEmpty.run.sync() shouldBe true
+      }
+
+      "work on single elem" in new CommonWiring {
+        (Seq.empty[Int] :: ANil).isEmpty.run.sync() shouldBe true
+        (Seq(1) :: ANil).isEmpty.run.sync() shouldBe false
+      }
+
+      "work on multuple elem elem" in new CommonWiring {
+        (Seq.empty[Int] :: Seq.empty :: ANil).isEmpty.run.sync() shouldBe true
+        (Seq.empty[Int] :: Seq(1) :: ANil).isEmpty.run.sync() shouldBe false
+        (Seq(1) :: Seq.empty[Int] :: ANil).isEmpty.run.sync() shouldBe false
+        (Seq.empty[Int] :: Seq.empty :: ANil).isEmpty.run.sync() shouldBe true
+      }
+    }
+
+    "non Empty" should {
+      import scala.concurrent.ExecutionContext.Implicits.global
+      "work on ANIL" in new CommonWiring {
+        ANil.nonEmpty.run.sync() shouldBe false
+      }
+
+      "work on single elem" in new CommonWiring {
+        (Seq.empty[Int] :: ANil).nonEmpty.run.sync() shouldBe false
+        (Seq(1) :: ANil).nonEmpty.run.sync() shouldBe true
+      }
+
+      "work on multuple elem elem" in new CommonWiring {
+        (Seq.empty[Int] :: Seq.empty :: ANil).nonEmpty.run.sync() shouldBe false
+        (Seq.empty[Int] :: Seq(1) :: ANil).nonEmpty.run.sync() shouldBe true
+        (Seq(1) :: Seq.empty[Int] :: ANil).nonEmpty.run.sync() shouldBe true
+        (Seq.empty[Int] :: Seq.empty :: ANil).nonEmpty.run.sync() shouldBe false
+      }
+    }
   }
 
 

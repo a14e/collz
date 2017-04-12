@@ -76,10 +76,12 @@ trait AsyncList[+T] extends ResultHandler[Seq[T]] {
     }
   }
 
+  def contains[B >: T](x: B): ResultHandler[Boolean] = exists(_ == x)
+
   def isEmpty: ResultHandler[Boolean] = {
-    foldLeftImpl(false) { (_, batch) =>
+    foldLeftImpl(true) { (_, batch) =>
       val res = batch.isEmpty
-      (res, !res)
+      (res, res)
     }
   }
 
