@@ -8,49 +8,50 @@ Custom Scala Collections
 
 TODO english docs in few months
 
-## Библиотека коллекций для Scala
-Библиотека коллекций, которых может недоставать в стандартной библиотеке Scala. 
-Пока находится в разработке и будет готова в течении нескольких месяцев. 
-В данный момент содержит следующие коллекции:  
-1. Мутабельные:  
-  
+## Collection Library for Scala
+A collection library that may be missing in the standard Scala library.
+Currently under development and will be ready in a few months.
+At present, it contains the following collections:
+1. Mutable:
+
     1) VList  
     2) BoundedQueue  
     3) IntMap  
     4) IntSet  
     5) PrefixMap  
     6) PrefixSet
-      
-2. Иммутабельные:  
-  
+
+2. Immutable:
+
+
     1) BoundedQueue    
     2) BoundedBucketQueue      
     3) Router  
 
-# Использование
-Библиотека собрана для версий 2.11.8 и 2.12.1
-Для подключения библиотки добавьте себе в .sbt файл строку
+# Usage
+The library is built for versions 2.11.8 and 2.12.1.
+To connect the library, add the following line to your .sbt file
 ```scala
 libraryDependencies += "com.github.a14e" %% "collz" % "0.2.2"
 ```
 
 
-    
-## Описание реализаций
-Все мутабельные коллекции не являются потокобезопасными
+
+## Description of Implementations
+All mutable collections are not thread-safe.
 
 ### <a name="vlist"></a> VList
-Класс как возможная альтернатива ListBuffer или ArrayBuffer. В отличие от ListBuffer 
-имеет быстрый доступ к элементам по индексу и более эффективное использование памяти, а
-в отличие от ArrayBuffer позволяет добавлять элементы в конец без перестроения всего 
-массива.
+The class is a possible alternative to ListBuffer or ArrayBuffer. Unlike ListBuffer,
+it provides fast access to elements by index and more efficient memory use, and
+unlike ArrayBuffer, it allows adding elements to the end without rebuilding the entire
+array.
 
-Реализован как VList c одним изменением: список из подмассивов заменен на массив с буффером,
-что позволило несколько упростить реализацию и добавить эффективно реализовать итерации в прямом
-и обратном направлениях.
-Сложность добавления в конец O(log(log(n))), что примерно ~O(1). Скорость обращения по индексу
-в худшем случае (для индекса 0) - O(log(n)), но в большинстве случаев - O(1), так как 50% ... 75%
-индексов содержатся в 2х последних подмассивах. 
+Implemented as a VList with one modification: the list of subarrays is replaced with an array buffer,
+which has somewhat simplified the implementation and added efficiency to iterations in both
+forward and reverse directions.
+The complexity of appending to the end is O(log(log(n))), which is approximately ~O(1). The speed of access by index
+in the worst case (for index 0) is O(log(n)), but in most cases it's O(1), since 50% ... 75%
+of the indices are contained in the last 2 subarrays.
 
 ```scala
 import a14e.collz.mut.VList
@@ -65,20 +66,20 @@ list.foreach(sum += _) // sum == 12
 ```
 
 ### <a name="fixed_queue"></a> BoundedQueue
-Представляет собой очередь типа FIFO с фиксированным размером. 
-Новые элементы добавляются в конец методами push, pushAll, :+ и тд.
-Элементы из очереди извлекаются и удаляются из начала вызовами методов pull. 
-При превышении размера удаляются элементы из начала. Реализована с 
-быстрым добавлением в конец и извлечением из начала без перестроения всей очереди. 
-Также реализовано с очень быстрым доступом по индексу и быстрыми итерациями по очереди.  
+This is a FIFO queue with a fixed size.
+New elements are added to the end using methods like push, pushAll, :+ and so on.
+Elements are retrieved and removed from the beginning by calling pull methods.
+When the size is exceeded, elements from the beginning are removed. It is implemented with
+quick addition to the end and extraction from the beginning without rebuilding the entire queue.
+Also, it has very fast access by index and quick iterations through the queue.
 
-Внутри реализовано с помощью двух массивов с размером, равным размеру очереди. 
-В первом массиве есть указатели на начало и конец очереди, а во втором массиве только указатель на
-конец. (тут указателем называется номер индекса). При перепонии первого моссива начинает заполнятся второй.
-При превышении размера или извлечении элементов из учереди методом pull смещается указатель на начало очереди
-и место извдеченного элемента заполняется null, чтобы помочь сборщику мусора.
-Когда место во втором массиве заканчивается или указатель на начало во втором массиве доходит до конца,
-тогда второй массив заменяет собой первый. 
+Internally, it is implemented using two arrays of the same size as the queue.
+The first array has pointers to the beginning and the end of the queue, and the second array has only a pointer to
+the end. (here, a pointer refers to the index number). When the first array is full, the second one starts to fill.
+When the size is exceeded or elements are extracted from the queue by the pull method, the pointer to the beginning of the queue
+shifts, and the place of the extracted element is filled with null, to assist the garbage collector.
+When the second array runs out of space, or the pointer to the beginning in the second array reaches the end,
+then the second array replaces the first.
 
 ```scala
 import a14e.collz.mut.BoundedQueue
@@ -99,7 +100,7 @@ var sum = 0
 queue.foreach(sum += _) // sum === 5
 ```
 
-иммутабельные реализованы схожим образом. Только вместо массивов используется класс Vector
+The immutable implementations are done in a similar way. Only instead of arrays, the Vector class is used.
 ```scala
 import a14e.collz.immut.BoundedQueue
 
@@ -118,27 +119,27 @@ val x4 = queue6(1) // x4 == 3
 var sum = 0
 queue6.foreach(sum += _) // sum === 5
 ```
-В иммутабельной версии часть элементов после pull() может скрыто оставаться в коллекции,
-стоит помнить об этом во избежание утечек памяти.
+In the immutable version, some elements may secretly remain in the collection after pull(),
+it's worth remembering this to avoid memory leaks.
 
 ### <a name="int_map"></a> IntMap
-В стандартной библиотеке Scala есть эффективная неизменяемая реализация IntMap. Тут же
-преставлена эффективная изменяемая реализация.
+The standard Scala library has an efficient immutable IntMap implementation. Here,
+an efficient mutable implementation is presented.
 
-Выполнена как префиксное дерево, в каждом узле которого до 16 ветвей, номер ветви определяется
-как key & F, при увеличении глубины ключ сдвигается на 4 бита вправо. 
-Очень близка к иммутабельной реазации HashMap, но имеет сильно более простую реализацию и несколько лучшую
-производительность при поиске и добавлении элементов.
- 
-При поиске по элементу бенчмарки большой разницы по сравнению из 
-мутабельными AnyRefMap, HashMap и тд. Но скорость добавления и удаления элементов 
-может быть в 4-8 раз быстрее. Сложность операций добавления, удаления, поиска по ключу имеет  вид 
-O(log16(n))
+Implemented as a prefix tree, each node of which has up to 16 branches, the branch number is determined
+as key & F, as the depth increases, the key is shifted 4 bits to the right.
+It's very close to the immutable HashMap implementation, but it has a much simpler implementation and slightly better
+performance when searching for and adding elements.
 
-Недостатком данной реализации из-за использование массивов по 16 является более высокий расход памяти
-и более медленные итерации по коллеции.
+When searching by element, benchmarks show no significant difference compared to
+mutable AnyRefMap, HashMap, etc. But the speed of adding and removing elements
+can be 4-8 times faster. The complexity of adding, removing, and key lookup operations is
+O(log16(n)).
 
-Ключи или значения null недопустимы
+A disadvantage of this implementation due to the use of 16 arrays is higher memory consumption
+and slower iterations through the collection.
+
+Keys or null values are not allowed.
 
 ```scala
 import a14e.collz.mut.IntMap
@@ -165,9 +166,9 @@ map.foreach{ case (key, value) => sum += value } // sum == 12
 map.clear() // map = IntMap()
 ```
 
-### <a name="int_map"></a> IntSet
-Реализация mutable.Set[_], оптимизированная для работы с Int. Сделана на базе префиксных деревьев. 
-Представляет собой легкую обертку поверх IntMap. 
+### <a name="int_set"></a> IntSet
+An implementation of mutable.Set[_], optimized for working with Int. It's based on prefix trees.
+It is a lightweight wrapper over IntMap.
 
 ```scala
 import a14e.collz.mut.IntSet
@@ -190,17 +191,16 @@ set.foreach(sum += _) // sum == 15
 
 
 ### <a name="prefix_map"></a> PrefixMap
-Реализация mutable.Map[_, _], оптимизированная для работы со строками. 
-Сделана в виде префиксных деревьев. Для быстрого поиска элемента в узле, каждый узел содержит
-IntMap, что позволяет получить худшее возможное время поиска мало зависящим от колличества элементов
-в коллекции, а зависящим только от длинны ключа. Время поиска в худшем случае примерно равно времени
-поиска в лучшем случае в хэш таблице и разница будет тем больше, чем длиннее ключ. Для длинных строк 
-типа URL с большими общими частями можно получить значительный прирост в скорости 
-по сравнению с хэш таблицей. Также есть возможность эффективно находить все строки, начинающиеся
-с некоторого префикса и определять существуют ли такие строки.
+An implementation of mutable.Map[_, _], optimized for working with strings.
+Implemented as prefix trees. For quick element lookup in a node, each node contains
+an IntMap, which allows the worst possible search time to depend little on the number of elements
+in the collection, but only on the length of the key. The search time in the worst case is approximately equal to the time
+of search in the best case in a hash table, and the difference will be greater the longer the key. For long strings
+like URLs with large common parts, a significant increase in speed can be achieved
+compared to a hash table. There is also the ability to efficiently find all strings starting
+with a certain prefix and determine if such strings exist.
 
-Ключи или значения null недопустимы
-
+Keys or null values are not allowed.
 ```scala
 import a14e.collz.mut.PrefixMap
 val map = PrefixMap("string" -> 1, "stringWithSuffix" -> 2, "string2" -> 3, "anotherString" -> 4)
@@ -221,11 +221,11 @@ map("string3") = 5
 // map == PrefixMap("stringWithSuffix" -> 2, "string2" -> 3, "anotherString" -> 4, "string3" -> 5)
 ```
 
-### <a name="prefix_map"></a> PrefixSet
-Реализация mutable.Set[_], оптимизированная для работы со строками. 
-Реализована в виде тонкой обертки вокруг PrefixMap.
+### <a name="prefix_set"></a> PrefixSet
+An implementation of mutable.Set[_], optimized for working with strings.
+Implemented as a thin wrapper around PrefixMap.
 
-значения null недопустимы
+Null values are not allowed.
 
 ```scala
 import a14e.collz.mut.PrefixSet
@@ -247,12 +247,12 @@ set += "string3"
 // set == PrefixSet("stringWithSuffix", "string2", "anotherString", "string3")
 ```
 
-### BoundedBucketQueue 
-В целом очень похож на BoundedQueue, но не удаляет прошлые значения, а сохраняет их
-в корзине (bucket), которая заполняется по принцыпу стека
+### BoundedBucketQueue
+In general, it's very similar to BoundedQueue, but it does not delete past values, instead, it stores them
+in a bucket, which is filled according to the stack principle.
 
-так как коллекция состояит из 2 подколлекций, то не имеет смысла ей наследовать разного рода Iterable[_] и тд.
-Поэтому для доступа к итерациям нужно сначала вызвать методы queue или bucket
+Since the collection consists of 2 sub-collections, it doesn't make sense for it to inherit various types of Iterable[_], etc.
+Therefore, to access the iterations, you first need to call the queue or bucket methods.
 
 ```scala
 import a14e.collz.immut.BoundedBucketQueue
@@ -272,10 +272,10 @@ val x4 = queue6(1) // x4 == 3
 ```
 
 ### Router
-Простой класс для роутинга. Нужен для случайного выбора из входящих элементов по некоторому ключу.
-Ключем может быть любой наследник Any. Элементы будут выбиратся примерно случайно, но однозначно для каждого ключа.
-Независимо от порядка добавления роутинг будет однозначным. Но при изменении даже на 1 элемент распределение по 
-ключам может сильно изменится.
+A simple class for routing. It's needed for the random selection of incoming elements based on a certain key.
+The key can be any descendant of Any. Elements will be selected approximately randomly, but unambiguously for each key.
+Regardless of the order of addition, routing will be unambiguous. However, even a single-element change can significantly alter the distribution by
+keys. The algorithm is also known as Ketama.
 
 ```scala
 import a14e.collz.immut.Router
@@ -295,25 +295,29 @@ router.route(id3) // 127.0.0.1:2222
 
 ```
 
-## Сборка из исходных кодов
-Проект собирается для scala 2.11.8 и 2.12.1
-  
-скопировать исходники:  
+## Building from source code
+The project is built for Scala 2.11.8 and 2.12.1
+
+To copy the source code:
+```bash
 $ git clone https://github.com/a14e/collz.git  
 $ cd collz  
-собрать:  
+```
+To build:
+```bash
 $ sbt update  
 $ sbt +test  
 $ sbt +package  
-взять .jar из папки traget
+```
+Take the .jar from the target folder.
 
 
 ## Roadmap
-1. Сделать нормальную документацию на англ языке (English docs)
-2. Добавить новые коллекции 
-    1) иммутабельные:  
+1. Make proper documentation in English (English docs)
+2. Add new collections
+    1) Immutable:  
         a. IntervalMap  
-3. Добавить бенчмарки в репозиторий
+3. Add benchmarks to the repository
 
 
     
